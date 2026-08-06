@@ -2,11 +2,7 @@
 // A digital interpretation for personal reflection, not a clinical tool.
 
 import {
-  DOMAINS,
-  DEFAULT_SCORE,
-  STORAGE_KEY,
   type AssessmentState,
-  type Domain,
   createDefaultDomains,
   cloneDomains
 } from './types';

@@ -96,17 +96,17 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     // Override window.print to verify it was called
     await page.evaluate(() => {
-      (window as any).__printCalled = false;
+      (window as Window & { __printCalled?: boolean }).__printCalled = false;
       const originalPrint = window.print;
       window.print = () => {
-        (window as any).__printCalled = true;
+        (window as Window & { __printCalled?: boolean }).__printCalled = true;
         return originalPrint.call(window);
       };
     });
 
     await page.click('[data-action="print"]');
 
-    const printCalled = await page.evaluate(() => (window as any).__printCalled);
+    const printCalled = await page.evaluate(() => (window as Window & { __printCalled?: boolean }).__printCalled);
     expect(printCalled).toBe(true);
   });
 

@@ -1,6 +1,4 @@
 import { defineConfig } from 'vitest/config';
-import { copyFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
 
 export default defineConfig({
   root: 'public',

@@ -71,6 +71,69 @@ npm test
 npm run test:e2e
 ```
 
+## Development & Change Management
+
+### Progress Tracking
+
+All work in this repository uses explicit progress markers to maintain visibility:
+
+- **Todo tracking**: Agents and maintainers MUST use structured todo lists (e.g., `todowrite` tool) for any task involving 3+ distinct steps.
+- **Status updates**: Todo items MUST be updated in real time as work progresses. Mark items `completed` only after the required work and verification are actually done.
+- **Commit messages**: Follow Conventional Commits. Feature work uses `feat(...)`, fixes use `fix(...)`, and refactors use `refactor(...)`.
+
+### Branching Model
+
+- **Default branch**: `master` is the sole default branch. All feature branches MUST be created from `master` and merged back to `master`.
+- **Redundant branch deletion**: The legacy `main` branch MUST be deleted as part of the standard merge workflow. After merging a feature branch to `master`, run:
+  ```bash
+  git branch -d main
+  git push origin --delete main
+  ```
+- **Branch naming**: Use descriptive names prefixed by type, e.g., `feat/chart-background-overlay`, `fix/storage-key-collision`.
+
+### Software Lifecycle for Agents
+
+When executing development tasks, agents MUST follow this lifecycle:
+
+1. **Plan**: Break the task into discrete, actionable steps. Create a todo list before making any code changes.
+2. **Implement**: Make minimal, focused changes. Do not modify files outside the scope of the task.
+3. **Validate**: Run the **full** standard lifecycle test suite:
+   ```bash
+   npm run lifecycle
+   ```
+   This command runs, in order:
+   - `npm run typecheck`
+   - `npm run lint`
+   - `npm run test` (Vitest)
+   - `npm run test:e2e --project=chromium` (Playwright)
+   - `npm run test:dry` (jscpd / dry-4js duplicate-code check)
+   - `npm run test:crap` (crap4js complexity and coverage risk check)
+4. **Report**: Summarize what changed, which checks passed, and any caveats.
+5. **Commit**: Stage only intended files. Never commit secrets. Write a concise commit message matching the repo style.
+
+### Quality Gates
+
+The following quality gates are mandatory. No task is considered complete until all gates pass:
+
+| Gate | Command | Purpose |
+|------|---------|---------|
+| Type safety | `npm run typecheck` | TypeScript compilation without errors |
+| Lint | `npm run lint` | Code style and correctness |
+| Unit tests | `npm run test` | Vitest suite |
+| E2E tests | `npm run test:e2e --project=chromium` | Playwright Chromium suite |
+| DRY / duplication | `npm run test:dry` | jscpd copy-paste detection |
+| Complexity / risk | `npm run test:crap` | crap4js CRAP metric analysis |
+
+### Rollback & Safety
+
+- **Atomic commits**: Prefer small, reversible commits.
+- **Feature flags**: For production-facing changes, wrap new behavior behind a flag that can be toggled without redeployment.
+- **Revert**: If a change causes issues after deployment, revert the commit rather than layering patches:
+  ```bash
+  git revert <commit-sha>
+  git push origin master
+  ```
+
 ## Cultural note
 
 Te Whare Tapa Whā is a holistic model of hauora. The numeric scores and chart are a visualisation aid only. Meaning belongs to the person reflecting.

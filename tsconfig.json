@@ -27,6 +27,6 @@
     },
     "types": ["vitest/globals"]
   },
-  "include": ["src/**/*", "tests/**/*", "vite.config.ts"],
-  "exclude": ["node_modules", "dist", "coverage"]
+  "include": ["src/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "coverage", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

@@ -2,7 +2,7 @@
 // Unit tests for App controller
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DOMAINS, DEFAULT_SCORE, createDefaultDomains } from '@src/types';
+import { createDefaultDomains } from '@src/types';
 import { bootstrap } from '@src/app';
 
 // Mock the modules that depend on DOM/storage
@@ -17,7 +17,6 @@ vi.mock('@src/chart', () => ({
 }));
 
 import { loadState, saveState, clearState } from '@src/storage';
-import { drawChart } from '@src/chart';
 
 describe('App', () => {
   beforeEach(() => {
