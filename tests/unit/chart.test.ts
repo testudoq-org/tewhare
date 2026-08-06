@@ -87,4 +87,71 @@ describe('Chart', () => {
   it('should do nothing when container does not exist', () => {
     expect(() => drawChart('nonexistent', [createDomain()])).not.toThrow();
   });
+
+  it('should render background SVG group as first child of SVG', () => {
+    const domains = [createDomain()];
+    drawChart('test-chart', domains);
+
+    expect(container.innerHTML).toContain('class="chart-bg-custom"');
+    expect(container.innerHTML).toContain('aria-hidden="true"');
+    const svgStart = container.innerHTML.indexOf('<svg');
+    const bgCustomStart = container.innerHTML.indexOf('chart-bg-custom');
+    expect(bgCustomStart).toBeGreaterThan(svgStart);
+  });
+
+  it('should render pentagon overlay group after background and before chart-bg', () => {
+    const domains = [createDomain()];
+    drawChart('test-chart', domains);
+
+    const bgCustomIdx = container.innerHTML.indexOf('chart-bg-custom');
+    const overlayIdx = container.innerHTML.indexOf('chart-overlay-pentagons');
+    const chartBgIdx = container.innerHTML.indexOf('class="chart-bg"');
+
+    expect(overlayIdx).toBeGreaterThan(bgCustomIdx);
+    expect(chartBgIdx).toBeGreaterThan(overlayIdx);
+  });
+
+  it('should render exactly 5 pentagons in the overlay', () => {
+    const domains = [createDomain()];
+    drawChart('test-chart', domains);
+
+    const overlayMatch = container.innerHTML.match(/class="chart-overlay-pentagons"[\s\S]*?<\/g>/);
+    expect(overlayMatch).not.toBeNull();
+    const overlayContent = overlayMatch![0];
+    const pentagonCount = (overlayContent.match(/<polygon/g) || []).length;
+    expect(pentagonCount).toBe(5);
+  });
+
+  it('should render pentagons with no fill and a stroke', () => {
+    const domains = [createDomain()];
+    drawChart('test-chart', domains);
+
+    const overlayMatch = container.innerHTML.match(/class="chart-overlay-pentagons"[\s\S]*?<\/g>/);
+    expect(overlayMatch).not.toBeNull();
+    const overlayContent = overlayMatch![0];
+    const pentagons = overlayContent.match(/<polygon[^>]*>/g) || [];
+    expect(pentagons.length).toBe(5);
+    pentagons.forEach(p => {
+      expect(p).toContain('fill="none"');
+      expect(p).toContain('stroke="var(--overlay-pentagon-stroke)"');
+    });
+  });
+
+  it('should render background SVG with concentric circles and house outline', () => {
+    const domains = [createDomain()];
+    drawChart('test-chart', domains);
+
+    expect(container.innerHTML).toContain('r="120"');
+    expect(container.innerHTML).toContain('r="90"');
+    expect(container.innerHTML).toContain('r="60"');
+    expect(container.innerHTML).toContain('stroke="var(--chart-bg-custom)"');
+  });
+
+  it('should keep all new decorative groups non-interactive', () => {
+    const domains = [createDomain()];
+    drawChart('test-chart', domains);
+
+    expect(container.innerHTML).toContain('class="chart-bg-custom" aria-hidden="true"');
+    expect(container.innerHTML).toContain('class="chart-overlay-pentagons" aria-hidden="true"');
+  });
 });

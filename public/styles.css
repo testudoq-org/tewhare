@@ -12,6 +12,8 @@
   --chart-fill: rgba(44, 95, 74, 0.25);
   --chart-stroke: #2c5f4a;
   --chart-level: #e0dbd3;
+  --chart-bg-custom: rgba(44, 95, 74, 0.08);
+  --overlay-pentagon-stroke: rgba(44, 95, 74, 0.18);
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -370,6 +372,16 @@ input[type="range"]:focus {
   font-size: 9px;
   fill: var(--ink-muted);
   font-family: var(--font);
+}
+
+/* Chart background custom layer */
+.chart-bg-custom {
+  pointer-events: none;
+}
+
+/* Chart overlay pentagons */
+.chart-overlay-pentagons {
+  pointer-events: none;
 }
 
 /* Navigation */

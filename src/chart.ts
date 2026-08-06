@@ -11,6 +11,45 @@ export interface ChartPoint {
   readonly domain: Domain;
 }
 
+const buildPentagonPoints = (cx: number, cy: number, r: number): string => {
+  const pts: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const angle = -Math.PI / 2 + i * (Math.PI * 2) / 5;
+    const x = cx + r * Math.cos(angle);
+    const y = cy + r * Math.sin(angle);
+    pts.push(x.toFixed(2) + ',' + y.toFixed(2));
+  }
+  return pts.join(' ');
+};
+
+const buildBackgroundSvg = (size: number): string => {
+  const center = size / 2;
+  return '' +
+    '<circle cx="' + center + '" cy="' + center + '" r="120" fill="none" stroke="var(--chart-bg-custom)" stroke-width="0.5" opacity="0.15"/>' +
+    '<circle cx="' + center + '" cy="' + center + '" r="90" fill="none" stroke="var(--chart-bg-custom)" stroke-width="0.5" opacity="0.12"/>' +
+    '<circle cx="' + center + '" cy="' + center + '" r="60" fill="none" stroke="var(--chart-bg-custom)" stroke-width="0.5" opacity="0.1"/>' +
+    '<path d="M' + center + ',50 L' + (center + 70) + ',100 L' + (center + 70) + ',170 L' + center + ',220 L' + (center - 70) + ',170 L' + (center - 70) + ',100 Z" fill="none" stroke="var(--chart-bg-custom)" stroke-width="1.2" opacity="0.1"/>' +
+    '<path d="M' + center + ',80 L' + (center + 40) + ',110 L' + (center + 40) + ',160 L' + center + ',190 L' + (center - 40) + ',160 L' + (center - 40) + ',110 Z" fill="none" stroke="var(--chart-bg-custom)" stroke-width="0.8" opacity="0.08"/>';
+};
+
+const buildPentagonOverlay = (size: number): string => {
+  const center = size / 2;
+  const stroke = 'var(--overlay-pentagon-stroke)';
+
+  const positions = [
+    { cx: center, cy: center, r: 8 },
+    { cx: center - 50, cy: center - 50, r: 12 },
+    { cx: center + 50, cy: center - 50, r: 12 },
+    { cx: center - 50, cy: center + 50, r: 12 },
+    { cx: center + 50, cy: center + 50, r: 12 }
+  ];
+
+  return positions.map(p => {
+    const points = buildPentagonPoints(p.cx, p.cy, p.r);
+    return '<polygon points="' + points + '" fill="none" stroke="' + stroke + '" stroke-width="1.5"/>';
+  }).join('');
+};
+
 export const drawChart = (containerId: string, domains: readonly Domain[]): void => {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -77,8 +116,17 @@ export const drawChart = (containerId: string, domains: readonly Domain[]): void
     return '<text x="' + x + '" y="' + y + '" class="chart-level-label">' + level + '</text>';
   }).join('');
 
+  const backgroundSvg = buildBackgroundSvg(size);
+  const pentagonOverlay = buildPentagonOverlay(size);
+
   container.innerHTML =
     '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" class="radar-svg" aria-hidden="true">' +
+      '<g class="chart-bg-custom" aria-hidden="true">' +
+        backgroundSvg +
+      '</g>' +
+      '<g class="chart-overlay-pentagons" aria-hidden="true">' +
+        pentagonOverlay +
+      '</g>' +
       '<g class="chart-bg">' +
         levelsHtml +
         axesHtml +

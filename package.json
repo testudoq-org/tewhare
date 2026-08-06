@@ -26,8 +26,10 @@
     "@playwright/test": "^1.49.0",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.1.7",
+    "crap4js": "^1.0.1-beta.0",
     "eslint": "^9.0.0",
     "husky": "^9.0.0",
+    "jscpd": "^5.0.14",
     "jsdom": "^28.1.0",
     "lint-staged": "^15.0.0",
     "prettier": "^3.3.0",
@@ -39,4 +41,3 @@
     "*.{ts,tsx}": "eslint --fix"
   }
 }
-

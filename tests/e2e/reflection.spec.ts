@@ -128,5 +128,73 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(page.locator('.assessment-body')).toBeVisible();
     await expect(page.locator('#live-chart')).toBeVisible();
   });
+
+  test('should render pentagon overlay in live chart', async ({ page }) => {
+    await page.click('[data-action="start"]');
+
+    const chart = page.locator('#live-chart');
+    await expect(chart).toBeVisible();
+    await expect(page.locator('#live-chart svg')).toBeVisible();
+
+    // Verify pentagon overlay group exists
+    await expect(page.locator('#live-chart .chart-overlay-pentagons')).toHaveCount(1);
+
+    // Verify exactly 5 pentagons
+    const pentagons = page.locator('#live-chart .chart-overlay-pentagons polygon');
+    await expect(pentagons).toHaveCount(5);
+
+    // Verify pentagons have no fill and a stroke
+    for (let i = 0; i < 5; i++) {
+      const pentagon = pentagons.nth(i);
+      await expect(pentagon).toHaveAttribute('fill', 'none');
+      await expect(pentagon).toHaveAttribute('stroke', 'var(--overlay-pentagon-stroke)');
+    }
+  });
+
+  test('should render background SVG layer in live chart', async ({ page }) => {
+    await page.click('[data-action="start"]');
+
+    await expect(page.locator('#live-chart svg')).toBeVisible();
+
+    // Verify background custom group exists
+    await expect(page.locator('#live-chart .chart-bg-custom')).toHaveCount(1);
+
+    // Verify background circles exist
+    await expect(page.locator('#live-chart .chart-bg-custom circle')).toHaveCount(3);
+
+    // Verify background house outline paths exist
+    await expect(page.locator('#live-chart .chart-bg-custom path')).toHaveCount(2);
+  });
+
+  test('should render pentagon overlay in summary chart', async ({ page }) => {
+    await page.click('[data-action="start"]');
+    for (let i = 0; i < 4; i++) {
+      await page.click('[data-action="next"]');
+    }
+
+    await expect(page.locator('#summary-chart svg')).toBeVisible();
+
+    // Verify pentagon overlay group exists
+    await expect(page.locator('#summary-chart .chart-overlay-pentagons')).toHaveCount(1);
+
+    // Verify exactly 5 pentagons
+    const pentagons = page.locator('#summary-chart .chart-overlay-pentagons polygon');
+    await expect(pentagons).toHaveCount(5);
+  });
+
+  test('should preserve chart interactivity after refactor', async ({ page }) => {
+    await page.click('[data-action="start"]');
+
+    const slider = page.locator('input[type="range"]');
+    await slider.fill('5');
+
+    const scoreValue = page.locator('[data-score-value="tinana"]');
+    await expect(scoreValue).toHaveText('5');
+
+    // Verify chart still updates visually
+    await expect(page.locator('#live-chart svg')).toBeVisible();
+    // There are 4 domains, so 4 data dots
+    await expect(page.locator('#live-chart .chart-dot')).toHaveCount(4);
+  });
 });
 
