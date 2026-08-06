@@ -1,0 +1,42 @@
+{
+  "name": "tewhare-webapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Te Whare Tapa Whā wellbeing reflection Jamstack web app",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/copy-build.js",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"*.{json,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "vite": "^6.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "^9.0.0",
+    "husky": "^9.0.0",
+    "jsdom": "^28.1.0",
+    "lint-staged": "^15.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^4.1.7"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,json,md}": "prettier --write",
+    "*.{ts,tsx}": "eslint --fix"
+  }
+}
+
