@@ -129,25 +129,25 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(page.locator('#live-chart')).toBeVisible();
   });
 
-  test('should render pentagon overlay in live chart', async ({ page }) => {
+  test('should render value-level polygons in live chart', async ({ page }) => {
     await page.click('[data-action="start"]');
 
     const chart = page.locator('#live-chart');
     await expect(chart).toBeVisible();
     await expect(page.locator('#live-chart svg')).toBeVisible();
 
-    // Verify pentagon overlay group exists
-    await expect(page.locator('#live-chart .chart-overlay-pentagons')).toHaveCount(1);
+    // Verify polygon overlay group exists
+    await expect(page.locator('#live-chart .chart-value-level-polygons')).toHaveCount(1);
 
-    // Verify exactly 5 pentagons
-    const pentagons = page.locator('#live-chart .chart-overlay-pentagons polygon');
-    await expect(pentagons).toHaveCount(5);
+    // Verify exactly 5 polygons
+    const polygons = page.locator('#live-chart .chart-value-level-polygons polygon');
+    await expect(polygons).toHaveCount(5);
 
-    // Verify pentagons have no fill and a stroke
+    // Verify polygons have no fill and a stroke
     for (let i = 0; i < 5; i++) {
-      const pentagon = pentagons.nth(i);
-      await expect(pentagon).toHaveAttribute('fill', 'none');
-      await expect(pentagon).toHaveAttribute('stroke', 'var(--overlay-pentagon-stroke)');
+      const polygon = polygons.nth(i);
+      await expect(polygon).toHaveAttribute('fill', 'none');
+      await expect(polygon).toHaveAttribute('stroke', 'var(--chart-value-level-stroke)');
     }
   });
 
@@ -166,7 +166,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(page.locator('#live-chart .chart-bg-custom path')).toHaveCount(2);
   });
 
-  test('should render pentagon overlay in summary chart', async ({ page }) => {
+  test('should render polygon overlay in summary chart', async ({ page }) => {
     await page.click('[data-action="start"]');
     for (let i = 0; i < 4; i++) {
       await page.click('[data-action="next"]');
@@ -174,12 +174,12 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     await expect(page.locator('#summary-chart svg')).toBeVisible();
 
-    // Verify pentagon overlay group exists
-    await expect(page.locator('#summary-chart .chart-overlay-pentagons')).toHaveCount(1);
+    // Verify polygon overlay group exists
+    await expect(page.locator('#summary-chart .chart-value-level-polygons')).toHaveCount(1);
 
-    // Verify exactly 5 pentagons
-    const pentagons = page.locator('#summary-chart .chart-overlay-pentagons polygon');
-    await expect(pentagons).toHaveCount(5);
+    // Verify exactly 5 polygons
+    const polygons = page.locator('#summary-chart .chart-value-level-polygons polygon');
+    await expect(polygons).toHaveCount(5);
   });
 
   test('should preserve chart interactivity after refactor', async ({ page }) => {
@@ -197,4 +197,5 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(page.locator('#live-chart .chart-dot')).toHaveCount(4);
   });
 });
+
 

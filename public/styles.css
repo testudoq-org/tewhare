@@ -13,7 +13,7 @@
   --chart-stroke: #2c5f4a;
   --chart-level: #e0dbd3;
   --chart-bg-custom: rgba(44, 95, 74, 0.08);
-  --overlay-pentagon-stroke: rgba(44, 95, 74, 0.18);
+  --chart-value-level-stroke: rgba(44, 95, 74, 0.15);
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   --font: "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -379,8 +379,8 @@ input[type="range"]:focus {
   pointer-events: none;
 }
 
-/* Chart overlay pentagons */
-.chart-overlay-pentagons {
+/* Chart value-level polygons */
+.chart-value-level-polygons {
   pointer-events: none;
 }
 
@@ -549,3 +549,5 @@ input[type="range"]:focus {
     transition: none !important;
   }
 }
+
+

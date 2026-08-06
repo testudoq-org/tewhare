@@ -99,41 +99,41 @@ describe('Chart', () => {
     expect(bgCustomStart).toBeGreaterThan(svgStart);
   });
 
-  it('should render pentagon overlay group after background and before chart-bg', () => {
+  it('should render value-level polygons group after background and before chart-bg', () => {
     const domains = [createDomain()];
     drawChart('test-chart', domains);
 
     const bgCustomIdx = container.innerHTML.indexOf('chart-bg-custom');
-    const overlayIdx = container.innerHTML.indexOf('chart-overlay-pentagons');
+    const valueLevelIdx = container.innerHTML.indexOf('chart-value-level-polygons');
     const chartBgIdx = container.innerHTML.indexOf('class="chart-bg"');
 
-    expect(overlayIdx).toBeGreaterThan(bgCustomIdx);
-    expect(chartBgIdx).toBeGreaterThan(overlayIdx);
+    expect(valueLevelIdx).toBeGreaterThan(bgCustomIdx);
+    expect(chartBgIdx).toBeGreaterThan(valueLevelIdx);
   });
 
-  it('should render exactly 5 pentagons in the overlay', () => {
+  it('should render exactly 5 value-level polygons', () => {
     const domains = [createDomain()];
     drawChart('test-chart', domains);
 
-    const overlayMatch = container.innerHTML.match(/class="chart-overlay-pentagons"[\s\S]*?<\/g>/);
-    expect(overlayMatch).not.toBeNull();
-    const overlayContent = overlayMatch![0];
-    const pentagonCount = (overlayContent.match(/<polygon/g) || []).length;
-    expect(pentagonCount).toBe(5);
+    const groupMatch = container.innerHTML.match(/class="chart-value-level-polygons"[\s\S]*?<\/g>/);
+    expect(groupMatch).not.toBeNull();
+    const groupContent = groupMatch![0];
+    const polygonCount = (groupContent.match(/<polygon/g) || []).length;
+    expect(polygonCount).toBe(5);
   });
 
-  it('should render pentagons with no fill and a stroke', () => {
+  it('should render value-level polygons with no fill and a light stroke', () => {
     const domains = [createDomain()];
     drawChart('test-chart', domains);
 
-    const overlayMatch = container.innerHTML.match(/class="chart-overlay-pentagons"[\s\S]*?<\/g>/);
-    expect(overlayMatch).not.toBeNull();
-    const overlayContent = overlayMatch![0];
-    const pentagons = overlayContent.match(/<polygon[^>]*>/g) || [];
-    expect(pentagons.length).toBe(5);
-    pentagons.forEach(p => {
+    const groupMatch = container.innerHTML.match(/class="chart-value-level-polygons"[\s\S]*?<\/g>/);
+    expect(groupMatch).not.toBeNull();
+    const groupContent = groupMatch![0];
+    const polygons = groupContent.match(/<polygon[^>]*>/g) || [];
+    expect(polygons.length).toBe(5);
+    polygons.forEach(p => {
       expect(p).toContain('fill="none"');
-      expect(p).toContain('stroke="var(--overlay-pentagon-stroke)"');
+      expect(p).toContain('stroke="var(--chart-value-level-stroke)"');
     });
   });
 
@@ -152,6 +152,6 @@ describe('Chart', () => {
     drawChart('test-chart', domains);
 
     expect(container.innerHTML).toContain('class="chart-bg-custom" aria-hidden="true"');
-    expect(container.innerHTML).toContain('class="chart-overlay-pentagons" aria-hidden="true"');
+    expect(container.innerHTML).toContain('class="chart-value-level-polygons" aria-hidden="true"');
   });
 });

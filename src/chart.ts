@@ -11,17 +11,6 @@ export interface ChartPoint {
   readonly domain: Domain;
 }
 
-const buildPentagonPoints = (cx: number, cy: number, r: number): string => {
-  const pts: string[] = [];
-  for (let i = 0; i < 5; i++) {
-    const angle = -Math.PI / 2 + i * (Math.PI * 2) / 5;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
-    pts.push(x.toFixed(2) + ',' + y.toFixed(2));
-  }
-  return pts.join(' ');
-};
-
 const buildBackgroundSvg = (size: number): string => {
   const center = size / 2;
   return '' +
@@ -32,22 +21,28 @@ const buildBackgroundSvg = (size: number): string => {
     '<path d="M' + center + ',80 L' + (center + 40) + ',110 L' + (center + 40) + ',160 L' + center + ',190 L' + (center - 40) + ',160 L' + (center - 40) + ',110 Z" fill="none" stroke="var(--chart-bg-custom)" stroke-width="0.8" opacity="0.08"/>';
 };
 
-const buildPentagonOverlay = (size: number): string => {
+const buildValueLevelPolygons = (size: number, domains: readonly Domain[]): string => {
   const center = size / 2;
-  const stroke = 'var(--overlay-pentagon-stroke)';
+  const maxRadius = 110;
+  const levels = 5;
+  const n = domains.length;
+  const angleStep = (Math.PI * 2) / n;
+  const startAngle = -Math.PI / 2;
+  const stroke = 'var(--chart-value-level-stroke)';
 
-  const positions = [
-    { cx: center, cy: center, r: 8 },
-    { cx: center - 50, cy: center - 50, r: 12 },
-    { cx: center + 50, cy: center - 50, r: 12 },
-    { cx: center - 50, cy: center + 50, r: 12 },
-    { cx: center + 50, cy: center + 50, r: 12 }
-  ];
-
-  return positions.map(p => {
-    const points = buildPentagonPoints(p.cx, p.cy, p.r);
-    return '<polygon points="' + points + '" fill="none" stroke="' + stroke + '" stroke-width="1.5"/>';
-  }).join('');
+  let html = '';
+  for (let level = 1; level <= levels; level++) {
+    const r = (level / levels) * maxRadius;
+    const pts: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const angle = startAngle + i * angleStep;
+      const x = center + r * Math.cos(angle);
+      const y = center + r * Math.sin(angle);
+      pts.push(x.toFixed(2) + ',' + y.toFixed(2));
+    }
+    html += '<polygon points="' + pts.join(' ') + '" fill="none" stroke="' + stroke + '" stroke-width="0.75" opacity="0.25"/>';
+  }
+  return html;
 };
 
 export const drawChart = (containerId: string, domains: readonly Domain[]): void => {
@@ -117,15 +112,15 @@ export const drawChart = (containerId: string, domains: readonly Domain[]): void
   }).join('');
 
   const backgroundSvg = buildBackgroundSvg(size);
-  const pentagonOverlay = buildPentagonOverlay(size);
+  const valueLevelPolygons = buildValueLevelPolygons(size, domains);
 
   container.innerHTML =
     '<svg viewBox="0 0 ' + size + ' ' + size + '" width="100%" height="100%" class="radar-svg" aria-hidden="true">' +
       '<g class="chart-bg-custom" aria-hidden="true">' +
         backgroundSvg +
       '</g>' +
-      '<g class="chart-overlay-pentagons" aria-hidden="true">' +
-        pentagonOverlay +
+      '<g class="chart-value-level-polygons" aria-hidden="true">' +
+        valueLevelPolygons +
       '</g>' +
       '<g class="chart-bg">' +
         levelsHtml +
