@@ -40,7 +40,7 @@ const buildValueLevelPolygons = (size: number, domains: readonly Domain[]): stri
       const y = center + r * Math.sin(angle);
       pts.push(x.toFixed(2) + ',' + y.toFixed(2));
     }
-    html += '<polygon points="' + pts.join(' ') + '" fill="none" stroke="' + stroke + '" stroke-width="0.75" opacity="0.25"/>';
+    html += '<polygon points="' + pts.join(' ') + '" fill="none" stroke="' + stroke + '" stroke-width="1" opacity="0.35"/>';
   }
   return html;
 };
@@ -132,3 +132,4 @@ export const drawChart = (containerId: string, domains: readonly Domain[]): void
       scoreLabels +
     '</svg>';
 };
+
