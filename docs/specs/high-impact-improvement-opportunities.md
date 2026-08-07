@@ -299,3 +299,242 @@ All changes must pass the full lifecycle defined in `README.md` § "Quality Gate
 - `npm run test:crap` (crap4js)
 
 No change is considered complete until all six gates pass.
+
+---
+
+## 6. Button Design System Audit, Tertiary Variant Evaluation, and UX Update Plan
+
+### 6.1 Current Button Architecture
+
+The project's button system is defined in `public/styles.css` and consists of a base `.btn` class plus four modifiers:
+
+| Variant | Selector | Background | Text Color | Border | Padding | Font Weight | Hover Behavior |
+|---------|----------|------------|------------|--------|---------|-------------|----------------|
+| Base | `.btn` | — | — | 2px solid transparent | 0.7rem 1.4rem | 600 | N/A |
+| Primary | `.btn.primary` | `var(--accent)` | `#fff` | transparent | inherited | inherited | `var(--accent-hover)` |
+| Secondary | `.btn.secondary` | `var(--surface)` | `var(--accent)` | `var(--accent)` | inherited | inherited | `var(--accent-soft)` |
+| Text | `.btn.text` | `transparent` | `var(--ink-muted)` | transparent | 0.4rem 0.6rem | 500 | `var(--accent)` only |
+| Small | `.btn.small` | — | — | — | 0.3rem 0.5rem | — | — |
+
+### 6.2 Button Usage Map and Semantic Audit
+
+| Button Label | `data-action` | Variant | Location | Semantic Role | Current Fit |
+|--------------|---------------|---------|----------|---------------|-------------|
+| Begin reflection | `start` | primary | Welcome | Primary CTA | ✅ Correct |
+| Next | `next` | primary | Assessment nav | Forward progression | ✅ Correct |
+| Print or save as PDF | `print` | primary | Summary | Primary action | ✅ Acceptable |
+| Back / Hoki | `prev` | secondary | Assessment/Summary nav | Secondary navigation | ✅ Correct |
+| Start over | `reset` | text | Assessment header | **Destructive** (clears all data) | ❌ Wrong |
+| Edit | `edit` | text small | Summary card | Inline secondary | ⚠️ Borderline |
+| Export | `export` | text | Summary footer | Data utility | ✅ Acceptable |
+| Import | `import` | text | Summary footer | Data utility | ✅ Acceptable |
+| Start a new reflection | `reset` | text | Summary footer | **Destructive** (clears all data) | ❌ Wrong |
+
+### 6.3 Identified Gaps
+
+**6.3.1 Destructive-action misclassification**
+
+The `[data-action="reset"]` button invokes `clearState()` and resets all domains to defaults. This is a **destructive, irreversible action** with high data-loss impact. Per WCAG 2.1 Success Criterion 3.2.1 (On Focus) and Nielsen's "Error prevention" heuristic, destructive actions must be visually distinguished from low-emphasis utility actions.
+
+Currently, `Start over` and `Start a new reflection` are styled identically to `Edit`, `Export`, and `Import` — all using `.btn.text` with no visual differentiation.
+
+**6.3.2 Missing interactive states on `.btn.text`**
+
+```css
+/* CURRENT STATE — gaps marked */
+.btn.text {
+  background: transparent;
+  color: var(--ink-muted);
+  padding: 0.4rem 0.6rem;
+  font-weight: 500;
+  /* MISSING: :active state */
+  /* MISSING: :focus-visible enhancement (relies on global :focus-visible) */
+  /* MISSING: :disabled state (relies on global .btn:disabled) */
+}
+
+.btn.text:hover {
+  color: var(--accent);
+  /* MISSING: background feedback */
+}
+```
+
+- **No `:active` state**: Pressing the button provides no visual feedback.
+- **No `:focus-visible` enhancement**: Relies on the global `outline: 2px solid var(--accent)` at `:focus-visible`, which is acceptable but not explicit.
+- **No `:disabled` state**: Relies on the global `.btn:disabled { opacity: 0.45; cursor: not-allowed; }`, which applies but is not scoped to text buttons.
+- **Hover provides only color change**: No background feedback, making hover detection harder on light backgrounds.
+
+**6.3.3 Inconsistent sizing**
+
+`.btn.text` has reduced padding (0.4rem 0.6rem) compared to the base `.btn` (0.7rem 1.4rem), but the `.small` modifier is applied inconsistently:
+- Edit button: `.btn.text.small` (further reduced)
+- Export/import/reset: `.btn.text` without `.small`
+
+This creates an inconsistent visual rhythm in the summary footer.
+
+**6.3.4 No semantic middle ground**
+
+The current hierarchy has a large visual gap between `.btn.secondary` (bordered, `var(--accent)` text) and `.btn.text` (transparent, `var(--ink-muted)` text). There is no variant for:
+- Medium-emphasis actions that need background fill but not full primary weight
+- Destructive actions that need warning-level emphasis without being primary CTAs
+- Tertiary navigation actions (e.g., "Save draft", "Share")
+
+### 6.4 Case for `.btn.tertiary`
+
+A tertiary variant is justified because:
+
+1. **Semantic clarity**: It provides a distinct visual weight for actions like "Start new reflection" that are more important than utility text buttons but less important than primary/secondary actions.
+
+2. **Destructive-action pattern**: A tertiary variant can serve as the base for a destructive-action modifier (`.btn.destructive`) or simply provide enough visual weight that a destructive action is not mistaken for a neutral text button.
+
+3. **Future extensibility**: The app currently has 10 button instances across 3 contexts (welcome, assessment, summary). As features grow (export, import, print), the need for a middle-ground button increases.
+
+4. **Design system completeness**: Most design systems (Material Design, Apple HIG, IBM Carbon) define at least three button levels: primary, secondary, and tertiary/text. The current system is incomplete.
+
+### 6.5 Proposed `.btn.tertiary` Specification
+
+**6.5.1 Visual States**
+
+```css
+/* Normal */
+.btn.tertiary {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+/* Hover */
+.btn.tertiary:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Active / Pressed */
+.btn.tertiary:active:not(:disabled) {
+  transform: translateY(1px);
+  background: var(--accent-hover);
+}
+
+/* Focus Visible */
+.btn.tertiary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Disabled */
+.btn.tertiary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+```
+
+**6.5.2 Variant Matrix**
+
+| State | Background | Text Color | Border | Additional |
+|-------|------------|------------|--------|------------|
+| Normal | `var(--accent-soft)` (#e8f0ec) | `var(--accent)` (#2c5f4a) | 2px solid transparent | — |
+| Hover | `var(--accent)` (#2c5f4a) | `#fff` | transparent | — |
+| Active | `var(--accent-hover)` (#234d3c) | `#fff` | transparent | `transform: translateY(1px)` |
+| Focus-visible | — | — | — | `outline: 2px solid var(--accent); outline-offset: 2px` |
+| Disabled | — | — | — | `opacity: 0.45; cursor: not-allowed` |
+
+**6.5.3 Accessibility Compliance Requirements**
+
+- **Color contrast**: Normal state (`#2c5f4a` on `#e8f0ec`) — contrast ratio 4.6:1 ✅ WCAG AA
+- **Focus indicator**: 2px solid accent outline with 2px offset, visible on all interactive states
+- **Touch target**: Minimum 44×44px (padding 0.5rem 1rem on 16px base = ~32px height, **FAILS**). Must increase padding to `0.6rem 1.2rem` or set `min-height: 44px`.
+- **Disabled state**: Clear visual and cursor indication
+- **Reduced motion**: Respects existing `@media (prefers-reduced-motion: reduce)` rule
+
+### 6.6 UX Update Plan
+
+#### Phase 1: Foundation (Week 1)
+
+**Objective**: Introduce `.btn.tertiary` without breaking existing functionality.
+
+| Task | Owner | Files | Effort |
+|------|-------|-------|--------|
+| Add `.btn.tertiary` styles to `public/styles.css` | Frontend | `public/styles.css` | 1 hour |
+| Fix `.btn.text` missing states (`:active`, `:focus-visible`, `:disabled`) | Frontend | `public/styles.css` | 30 min |
+| Increase `.btn.tertiary` touch target to 44×44px minimum | Frontend | `public/styles.css` | 15 min |
+| Add `.btn.destructive` modifier (inherits tertiary, uses warning colors) | Frontend | `public/styles.css` | 30 min |
+| Document button variants in `docs/design-system/buttons.md` | Design | New file | 2 hours |
+
+#### Phase 2: Component Migration (Week 2)
+
+**Objective**: Migrate destructive actions to appropriate variants.
+
+| Task | Owner | Files | Effort |
+|------|-------|-------|--------|
+| Change `Start over` button from `.btn.text` to `.btn.tertiary` | Frontend | `src/app.ts` line 349 | 15 min |
+| Change `Start a new reflection` button from `.btn.text` to `.btn.destructive` | Frontend | `src/app.ts` line 497 | 15 min |
+| Update E2E tests to verify new button classes | QA | `tests/e2e/reflection.spec.ts` | 1 hour |
+| Update unit tests for new CSS classes | QA | `tests/unit/app.test.ts` | 30 min |
+
+#### Phase 3: Accessibility Validation (Week 2–3)
+
+**Objective**: Ensure WCAG 2.1 AA compliance across all button variants.
+
+| Task | Owner | Method | Pass Criteria |
+|------|-------|--------|---------------|
+| Color contrast audit | Accessibility | axe DevTools / Lighthouse | All variants ≥ 4.5:1 |
+| Keyboard navigation test | QA | Manual + Playwright | All buttons reachable via Tab, activated via Enter/Space |
+| Focus indicator visibility | QA | Manual + screenshot diff | Focus ring visible on all variants |
+| Screen reader announcement | Accessibility | NVDA / VoiceOver | Button role and label announced correctly |
+| Touch target measurement | QA | Browser DevTools | All buttons ≥ 44×44px |
+| Reduced motion test | QA | DevTools emulation | No transitions when `prefers-reduced-motion: reduce` |
+
+#### Phase 4: Stakeholder Review (Week 3)
+
+**Objective**: Gather feedback and iterate before full rollout.
+
+| Task | Owner | Deliverable |
+|------|-------|-------------|
+| Design review meeting | Design + Product | Button spec approved |
+| Accessibility sign-off | Accessibility | WCAG AA compliance verified |
+| Engineering review | Engineering | No regressions in CI |
+| User testing (optional) | UX Researcher | 5 users complete assessment flow without confusion |
+
+#### Phase 5: Phased Rollout (Week 4)
+
+**Objective**: Deploy with monitoring and rollback capability.
+
+| Step | Environment | Duration | Success Criteria |
+|------|-------------|----------|------------------|
+| Deploy to staging | Staging | 1 day | All tests pass, visual regression diff clean |
+| Internal dogfooding | Staging | 2 days | No reported button confusion or accessibility issues |
+| Canary release (10%) | Production | 2 days | No increase in support tickets, no E2E test failures |
+| Full rollout | Production | 1 day | 100% traffic on new button styles |
+| Post-rolloom monitoring | Production | 1 week | Zero critical regressions, accessibility metrics stable |
+
+**Rollback trigger**: Any of the following immediately reverts to previous button styles:
+- E2E test failure rate > 1%
+- Accessibility violation detected in production
+- User-reported confusion or data-loss incidents related to button appearance
+- Visual regression detected by automated screenshot diff
+
+### 6.7 Risk Mitigation
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Users confuse tertiary with secondary | Medium | Low | Use distinct color (`accent-soft` vs `surface`) and test with users |
+| Touch target too small on mobile | Low | Medium | Enforce `min-height: 44px` in CSS and validate in Phase 3 |
+| Destructive button still clicked accidentally | Medium | High | Add `confirm()` dialog before `clearState()` (already exists in app.ts) |
+| Print styles hide new buttons inadvertently | Low | Low | Verify `.btn.tertiary` and `.btn.destructive` are hidden in `@media print` |
+| Color contrast fails on user's display | Low | Medium | Use CSS variables, not hardcoded values; test on multiple displays |
+
+### 6.8 Success Metrics
+
+- All 4 button variants (primary, secondary, tertiary, text) have defined styles, states, and use cases.
+- `.btn.text` has explicit `:active`, `:focus-visible`, and `:disabled` styles.
+- Destructive actions (`reset`) use `.btn.tertiary` or `.btn.destructive`, not `.btn.text`.
+- All buttons meet 44×44px touch target minimum.
+- All buttons pass WCAG 2.1 AA color contrast (≥ 4.5:1).
+- Zero E2E test regressions after migration.
+- Zero accessibility violations in automated audit.
