@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   quality:
@@ -19,5 +19,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:coverage
+      - run: npm run test:dry
+      - run: npm run test:crap
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
