@@ -6,7 +6,9 @@ export interface Domain {
   readonly name: string;
   readonly maoriName: string;
   readonly description: string;
+  readonly descriptionMi?: string;
   readonly prompt: string;
+  readonly promptMi?: string;
   score: number;
   reflection: string;
 }
@@ -29,7 +31,10 @@ export const DOMAINS: readonly Omit<Domain, 'score' | 'reflection'>[] = [
     maoriName: 'Taha tinana',
     description:
       'How your body feels and how you care for it — movement, rest, nourishment, and physical strength.',
-    prompt: 'What does looking after your tinana mean for you right now?'
+    descriptionMi:
+      'He aha tō kiko e noho nei, me tūpato koe i a ia — neke, moemoeā, kaiponu, me kaha tinana.',
+    prompt: 'What does looking after your tinana mean for you right now?',
+    promptMi: 'He aha te tikanga o tūpato i tō tinana mō koe kei ināianei?'
   },
   {
     id: 'hinengaro',
@@ -37,7 +42,10 @@ export const DOMAINS: readonly Omit<Domain, 'score' | 'reflection'>[] = [
     maoriName: 'Taha hinengaro',
     description:
       'Your thoughts, feelings, and how you make sense of the world. Clear thinking and expressing what is going on inside.',
-    prompt: 'How are your thoughts and feelings sitting with you at the moment?'
+    descriptionMi:
+      'Ōu whakaaro, ōu rongo, me tūpato koe i te ao. Whakaaro clear me āwhina i te mea e noho nei ki roto.',
+    prompt: 'How are your thoughts and feelings sitting with you at the moment?',
+    promptMi: 'He aha ōu whakaaro me rongo e noho nei mā koe pēlā?'
   },
   {
     id: 'wairua',
@@ -45,7 +53,10 @@ export const DOMAINS: readonly Omit<Domain, 'score' | 'reflection'>[] = [
     maoriName: 'Taha wairua',
     description:
       'Your sense of meaning, connection to something greater, values, identity, and what gives your life purpose.',
-    prompt: 'What gives your life meaning or a sense of connection right now?'
+    descriptionMi:
+      'Tō whakapono o tētahi, hononga ki tētahi mea nui, āhua, whakapono, me te mea e homai nei he-āhua ki tō ao.',
+    prompt: 'What gives your life meaning or a sense of connection right now?',
+    promptMi: 'He aha e homai nei he-āhua ki tō ao rānei hononga kei ināianei?'
   },
   {
     id: 'whanau',
@@ -53,7 +64,10 @@ export const DOMAINS: readonly Omit<Domain, 'score' | 'reflection'>[] = [
     maoriName: 'Taha whānau',
     description:
       'The people you belong with — family, friends, community, and the relationships that support and shape you.',
-    prompt: 'Who helps you feel you belong, and how are those connections for you?'
+    descriptionMi:
+      'Ngā tāngata e tūpato ana koe — whānau, hoa, hapai, me ngā whakapā e tautoko ana me āhua koe.',
+    prompt: 'Who helps you feel you belong, and how are those connections for you?',
+    promptMi: 'Ko wai e āwhina ana kia tūpato koe, me he aha āu hononga?'
   }
 ] as const;
 

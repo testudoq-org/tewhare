@@ -6,6 +6,10 @@ import { test, expect } from '@playwright/test';
 test.describe('Te Whare Tapa Whā Reflection', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('te-whare-tapa-wha-language', 'en');
+    });
+    await page.reload();
   });
 
   test('should display welcome screen', async ({ page }) => {
@@ -197,5 +201,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(page.locator('#live-chart .chart-dot')).toHaveCount(4);
   });
 });
+
+
 
 

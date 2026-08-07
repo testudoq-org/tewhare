@@ -3,11 +3,13 @@
 
 import {
   type AssessmentState,
+  type Domain,
   createDefaultDomains,
   cloneDomains
 } from './types';
-import { loadState, saveState, clearState } from './storage';
+import { loadState, saveState, clearState, loadLanguage, saveLanguage } from './storage';
 import { drawChart } from './chart';
+import { t, type Language, DEFAULT_LANGUAGE } from './i18n';
 
 const escapeHtml = (text: string): string => {
   const div = document.createElement('div');
@@ -15,10 +17,22 @@ const escapeHtml = (text: string): string => {
   return div.innerHTML;
 };
 
+/** Detect a likely language from the browser; returns DEFAULT_LANGUAGE on ambiguity. */
+const detectBrowserLanguage = (): Language =>
+  typeof navigator !== 'undefined' && navigator.language?.startsWith('mi')
+    ? 'mi'
+    : DEFAULT_LANGUAGE;
+
 class App {
   private state: AssessmentState;
+  private language: Language;
+  private showLanguageSelector: boolean;
 
   constructor() {
+    const savedLang = loadLanguage();
+    this.language = savedLang ?? detectBrowserLanguage();
+    this.showLanguageSelector = savedLang === null;
+
     const saved = loadState();
     this.state = {
       domains: saved?.domains ?? createDefaultDomains(),
@@ -29,13 +43,24 @@ class App {
   }
 
   private init(): void {
+    this.updateHtmlLang();
     this.render();
     this.bindEvents();
+  }
+
+  private updateHtmlLang(): void {
+    document.documentElement.setAttribute('lang', this.language);
   }
 
   private bindEvents(): void {
     document.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
+
+      if (target.matches('[data-action="select-lang"]')) {
+        const lang = target.getAttribute('data-lang') as Language;
+        this.setLanguage(lang);
+        return;
+      }
 
       if (target.matches('[data-action="start"]')) {
         this.state = {
@@ -81,7 +106,7 @@ class App {
       }
 
       if (target.matches('[data-action="reset"]')) {
-        if (confirm('Start a new reflection? Your current scores and notes will be cleared.')) {
+        if (confirm(t('dialog.resetConfirm', this.language))) {
           clearState();
           this.state = {
             domains: createDefaultDomains(),
@@ -138,6 +163,14 @@ class App {
     });
   }
 
+  private setLanguage(lang: Language): void {
+    this.language = lang;
+    this.showLanguageSelector = false;
+    saveLanguage(lang);
+    this.updateHtmlLang();
+    this.render();
+  }
+
   private updateScoreDisplay(id: string, score: number): void {
     const el = document.querySelector('[data-score-value="' + id + '"]');
     if (el) el.textContent = String(score);
@@ -152,11 +185,25 @@ class App {
     }
   }
 
+  /** Return the domain name appropriate for the current language. */
+  private domainName = (d: Domain): string =>
+    this.language === 'mi' ? d.maoriName : d.name;
+
+  /** Return the domain description appropriate for the current language. */
+  private domainDescription = (d: Domain): string =>
+    this.language === 'mi' ? (d.descriptionMi ?? d.description) : d.description;
+
+  /** Return the domain prompt appropriate for the current language. */
+  private domainPrompt = (d: Domain): string =>
+    this.language === 'mi' ? (d.promptMi ?? d.prompt) : d.prompt;
+
   private render(): void {
     const app = document.getElementById('app');
     if (!app) return;
 
-    if (this.state.currentStep === 0) {
+    if (this.showLanguageSelector) {
+      app.innerHTML = this.renderLanguageSelector();
+    } else if (this.state.currentStep === 0) {
       app.innerHTML = this.renderWelcome();
     } else if (this.state.showSummary) {
       app.innerHTML = this.renderSummary();
@@ -167,25 +214,54 @@ class App {
     }
   }
 
+  private renderLanguageSelector(): string {
+    const detected = detectBrowserLanguage();
+    const isDetected = (lang: Language): string =>
+      lang === detected ? ' selected' : '';
+    const titleEn = escapeHtml(t('lang.selectTitle', 'en'));
+    const titleMi = escapeHtml(t('lang.selectTitle', 'mi'));
+    const subtitleEn = escapeHtml(t('lang.selectSubtitle', 'en'));
+    const subtitleMi = escapeHtml(t('lang.selectSubtitle', 'mi'));
+
+    return '' +
+      '<section class="lang-selector" aria-labelledby="lang-select-title">' +
+        '<div class="lang-selector-content">' +
+          '<h1 id="lang-select-title">' +
+            '<span class="lang-mi">' + titleMi + '</span>' +
+            '<span class="lang-en">' + titleEn + '</span>' +
+          '</h1>' +
+          '<p class="lang-subtitle">' +
+            '<span class="lang-mi">' + subtitleMi + '</span>' +
+            '<span class="lang-en">' + subtitleEn + '</span>' +
+          '</p>' +
+          '<div class="lang-options" role="radiogroup" aria-label="' + escapeHtml(t('lang.selectTitle', this.language)) + '">' +
+            '<button type="button" class="lang-option' + isDetected('en') +
+              '" data-action="select-lang" data-lang="en"' +
+              ' aria-checked="' + (detected === 'en' ? 'true' : 'false') + '">' +
+              escapeHtml(t('lang.option.en', 'en')) +
+            '</button>' +
+            '<button type="button" class="lang-option' + isDetected('mi') +
+              '" data-action="select-lang" data-lang="mi"' +
+              ' aria-checked="' + (detected === 'mi' ? 'true' : 'false') + '">' +
+              escapeHtml(t('lang.option.mi', 'mi')) +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</section>';
+  }
+
   private renderWelcome(): string {
     return '' +
       '<section class="welcome" aria-labelledby="welcome-title">' +
         '<div class="welcome-content">' +
           '<h1 id="welcome-title">Te Whare Tapa Whā</h1>' +
-          '<p class="subtitle">A wellbeing reflection</p>' +
-          '<p class="intro">' +
-            'Te Whare Tapa Whā is a model of hauora developed by Sir Mason Durie.' +
-            ' It describes four walls of a house, each representing a dimension of wellbeing.' +
-            ' When the walls are strong and balanced, the house stands well.' +
-          '</p>' +
-          '<p class="intro">' +
-            'This tool is for personal reflection and conversation. It is not a diagnosis' +
-            ' or clinical assessment. The meaning of each score belongs to you.' +
-          '</p>' +
-          '<p class="note">' +
-            'This is a digital interpretation of the framework, offered with respect.' +
-          '</p>' +
-          '<button type="button" class="btn primary" data-action="start">Begin reflection</button>' +
+          '<p class="subtitle">' + escapeHtml(t('welcome.subtitle', this.language)) + '</p>' +
+          '<p class="intro">' + escapeHtml(t('welcome.intro1', this.language)) + '</p>' +
+          '<p class="intro">' + escapeHtml(t('welcome.intro2', this.language)) + '</p>' +
+          '<p class="note">' + escapeHtml(t('welcome.note', this.language)) + '</p>' +
+          '<button type="button" class="btn primary" data-action="start">' +
+            escapeHtml(t('welcome.startButton', this.language)) +
+          '</button>' +
         '</div>' +
       '</section>';
   }
@@ -196,29 +272,51 @@ class App {
     const step = this.state.currentStep;
     const total = this.state.domains.length;
 
+    const desc = escapeHtml(this.domainDescription(domain));
+    const prompt = escapeHtml(this.domainPrompt(domain));
+    const scoreLabel = escapeHtml(t('assessment.scoreLabel', this.language));
+    const progLabel = escapeHtml(t('assessment.progressLabel', this.language));
+    const stepOf = escapeHtml(
+      t('assessment.stepOf', this.language, { step: String(step), total: String(total) })
+    );
+    const startOver = escapeHtml(t('assessment.startOver', this.language));
+    const placeholder = escapeHtml(t('assessment.reflectionPlaceholder', this.language));
+    const chartTitle = escapeHtml(t('assessment.chartTitle', this.language));
+    const chartNote = escapeHtml(t('assessment.chartNote', this.language));
+    const scoreFormat = escapeHtml(t('assessment.scoreFormat', this.language));
+    const scoreAria = escapeHtml(
+      t('assessment.chartScoreAria', this.language, { name: domain.maoriName })
+    );
+    const liveAria = escapeHtml(t('chart.liveAriaLabel', this.language));
+    const backBtn = escapeHtml(t('nav.back', this.language));
+    const nextBtn = step === total
+      ? escapeHtml(t('nav.seeSummary', this.language))
+      : escapeHtml(t('nav.next', this.language));
+
     return '' +
       '<section class="assessment" aria-labelledby="domain-title">' +
         '<header class="assessment-header">' +
-          '<div class="progress" role="progressbar" aria-valuenow="' + step + '" aria-valuemin="1" aria-valuemax="' + total + '" aria-label="Progress">' +
-            '<span class="progress-text">Step ' + step + ' of ' + total + '</span>' +
+          '<div class="progress" role="progressbar" aria-valuenow="' + step + '" aria-valuemin="1" aria-valuemax="' + total + '" aria-label="' + progLabel + '">' +
+            '<span class="progress-text">' + stepOf + '</span>' +
             '<div class="progress-bar">' +
               '<div class="progress-fill" style="width: ' + ((step / total) * 100) + '%"></div>' +
             '</div>' +
           '</div>' +
-          '<button type="button" class="btn text" data-action="reset">Start over</button>' +
+          '<button type="button" class="btn text" data-action="reset">' + startOver + '</button>' +
         '</header>' +
 
         '<div class="assessment-body">' +
           '<div class="domain-panel">' +
             '<h2 id="domain-title">' +
-              '<span class="maori">' + domain.maoriName + '</span>' +
-              '<span class="english">' + domain.name + '</span>' +
+              '<span class="maori">' + escapeHtml(domain.maoriName) + '</span>' +
+              '<span class="english">' + escapeHtml(domain.name) + '</span>' +
             '</h2>' +
-            '<p class="domain-desc">' + domain.description + '</p>' +
+            '<p class="domain-desc">' + desc + '</p>' +
 
             '<div class="score-control">' +
               '<label for="score-' + domain.id + '">' +
-                'Where do you sit right now? <span class="score-value" data-score-value="' + domain.id + '">' + domain.score + '</span> / 5' +
+                scoreLabel +
+                ' <span class="score-value" data-score-value="' + domain.id + '">' + domain.score + '</span>' + scoreFormat +
               '</label>' +
               '<input' +
                 ' type="range"' +
@@ -231,7 +329,7 @@ class App {
                 ' aria-valuemin="1"' +
                 ' aria-valuemax="5"' +
                 ' aria-valuenow="' + domain.score + '"' +
-                ' aria-label="Score for ' + domain.maoriName + '"' +
+                ' aria-label="' + scoreAria + '"' +
               ' />' +
               '<div class="score-labels" aria-hidden="true">' +
                 '<span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>' +
@@ -239,27 +337,27 @@ class App {
             '</div>' +
 
             '<div class="reflection-control">' +
-              '<label for="reflection-' + domain.id + '">' + domain.prompt + '</label>' +
+              '<label for="reflection-' + domain.id + '">' + prompt + '</label>' +
               '<textarea' +
                 ' id="reflection-' + domain.id + '"' +
                 ' data-reflection="' + domain.id + '"' +
                 ' rows="4"' +
-                ' placeholder="Your thoughts (optional)"' +
+                ' placeholder="' + placeholder + '"' +
               '>' + escapeHtml(domain.reflection) + '</textarea>' +
             '</div>' +
           '</div>' +
 
           '<div class="chart-panel">' +
-            '<h3 class="chart-title">Your current shape</h3>' +
-            '<div class="chart-container" id="live-chart" role="img" aria-label="Radar chart showing current wellbeing scores"></div>' +
-            '<p class="chart-note">The shape updates as you move the slider. Stronger areas sit further out.</p>' +
+            '<h3 class="chart-title">' + chartTitle + '</h3>' +
+            '<div class="chart-container" id="live-chart" role="img" aria-label="' + liveAria + '"></div>' +
+            '<p class="chart-note">' + chartNote + '</p>' +
           '</div>' +
         '</div>' +
 
         '<nav class="assessment-nav">' +
-          '<button type="button" class="btn secondary" data-action="prev" ' + (step === 1 ? 'disabled' : '') + '>Back</button>' +
+          '<button type="button" class="btn secondary" data-action="prev" ' + (step === 1 ? 'disabled' : '') + '>' + backBtn + '</button>' +
           '<button type="button" class="btn primary" data-action="next">' +
-            (step === total ? 'See summary' : 'Next') +
+            nextBtn +
           '</button>' +
         '</nav>' +
       '</section>';
@@ -272,44 +370,70 @@ class App {
     const min = Math.min(...scores);
     const max = Math.max(...scores);
     const spread = max - min;
+    const andWord = t('common.and', this.language);
+    const scoreFormat = escapeHtml(t('assessment.scoreFormat', this.language));
 
     let shapeNote = '';
     if (spread === 0) {
-      shapeNote = 'Your scores sit evenly across all four dimensions.';
+      shapeNote = escapeHtml(t('summary.scoreEven', this.language));
     } else if (spread <= 1) {
-      shapeNote = 'Your shape is fairly balanced, with only small differences between dimensions.';
+      shapeNote = escapeHtml(t('summary.scoreBalanced', this.language));
     } else {
-      const strongest = domains.filter((d) => d.score === max).map((d) => d.maoriName);
-      const softest = domains.filter((d) => d.score === min).map((d) => d.maoriName);
-      shapeNote = 'Stronger areas include ' + strongest.join(' and ') + '. Areas sitting lower include ' + softest.join(' and ') + '.';
+      const strongest = domains
+        .filter((d) => d.score === max)
+        .map((d) => this.domainName(d));
+      const softest = domains
+        .filter((d) => d.score === min)
+        .map((d) => this.domainName(d));
+      shapeNote = escapeHtml(
+        t('summary.scoreSpread', this.language, {
+          strongest: strongest.join(andWord),
+          softest: softest.join(andWord)
+        })
+      );
     }
+
+    const title = escapeHtml(t('summary.title', this.language));
+    const subtitle = escapeHtml(t('summary.subtitle', this.language));
+    const noNotes = escapeHtml(t('summary.noNotes', this.language));
+    const editBtn = escapeHtml(t('summary.edit', this.language));
+    const disclaimer = escapeHtml(t('summary.disclaimer', this.language));
+    const backToEdit = escapeHtml(t('summary.backToEdit', this.language));
+    const printBtn = escapeHtml(t('summary.print', this.language));
+    const startNew = escapeHtml(t('summary.startNew', this.language));
+    const avgNote = escapeHtml(
+      t('summary.avgNote', this.language, { avg: avg.toFixed(1) })
+    );
+    const summaryAria = escapeHtml(t('chart.summaryAriaLabel', this.language));
 
     const domainCards = domains.map((d) =>
       '<article class="summary-card">' +
         '<h3>' +
-          '<span class="maori">' + d.maoriName + '</span>' +
-          '<span class="score-badge">' + d.score + '/5</span>' +
+          '<span class="domain-names">' +
+            '<span class="maori">' + escapeHtml(d.maoriName) + '</span>' +
+            '<span class="english">' + escapeHtml(d.name) + '</span>' +
+          '</span>' +
+          '<span class="score-badge">' + d.score + scoreFormat + '</span>' +
         '</h3>' +
-        '<p class="summary-english">' + d.name + '</p>' +
         (d.reflection
           ? '<p class="summary-note">"' + escapeHtml(d.reflection) + '"</p>'
-          : '<p class="summary-note muted">No notes added.</p>') +
-        '<button type="button" class="btn text small" data-action="edit" data-domain="' + d.id + '">Edit</button>' +
+          : '<p class="summary-note muted">' + noNotes + '</p>') +
+        '<button type="button" class="btn text small" data-action="edit" data-domain="' + d.id + '">' + editBtn + '</button>' +
       '</article>'
     ).join('');
 
     return '' +
       '<section class="summary" aria-labelledby="summary-title">' +
         '<header class="summary-header">' +
-          '<h1 id="summary-title">Your reflection</h1>' +
-          '<p class="subtitle">A snapshot of where you sit right now</p>' +
+          '<h1 id="summary-title">' + title + '</h1>' +
+          '<p class="subtitle">' + subtitle + '</p>' +
         '</header>' +
 
         '<div class="summary-body">' +
           '<div class="chart-panel large">' +
-            '<div class="chart-container" id="summary-chart" role="img" aria-label="Radar chart of your wellbeing scores"></div>' +
+            '<div class="chart-container" id="summary-chart" role="img" aria-label="' + summaryAria + '"></div>' +
             '<p class="shape-note">' + shapeNote + '</p>' +
-            '<p class="avg-note">Average across dimensions: ' + avg.toFixed(1) + '</p>' +
+            '<p class="avg-note">' + avgNote + '</p>' +
           '</div>' +
 
           '<div class="summary-cards">' +
@@ -318,15 +442,11 @@ class App {
         '</div>' +
 
         '<div class="summary-footer">' +
-          '<p class="disclaimer">' +
-            'This is a personal reflection tool based on Te Whare Tapa Whā.' +
-            ' The scores and shape are yours to interpret. They do not replace' +
-            ' professional support or conversation with people you trust.' +
-          '</p>' +
+          '<p class="disclaimer">' + disclaimer + '</p>' +
           '<div class="summary-actions">' +
-            '<button type="button" class="btn secondary" data-action="prev">Back to edit</button>' +
-            '<button type="button" class="btn primary" data-action="print">Print or save as PDF</button>' +
-            '<button type="button" class="btn text" data-action="reset">Start a new reflection</button>' +
+            '<button type="button" class="btn secondary" data-action="prev">' + backToEdit + '</button>' +
+            '<button type="button" class="btn primary" data-action="print">' + printBtn + '</button>' +
+            '<button type="button" class="btn text" data-action="reset">' + startNew + '</button>' +
           '</div>' +
         '</div>' +
       '</section>';

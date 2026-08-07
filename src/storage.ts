@@ -34,4 +34,26 @@ export const clearState = (): void => {
   }
 };
 
+import { Language } from './i18n';
 
+export const LANGUAGE_STORAGE_KEY = 'te-whare-tapa-wha-language';
+
+export const loadLanguage = (): Language | null => {
+  try {
+    const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved === 'en' || saved === 'mi') {
+      return saved as Language;
+    }
+  } catch {
+    // Ignore load errors
+  }
+  return null;
+};
+
+export const saveLanguage = (lang: Language): void => {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+  } catch {
+    // Ignore save errors
+  }
+};
