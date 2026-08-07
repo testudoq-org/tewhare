@@ -2,7 +2,7 @@
 // Unit tests for storage persistence
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadState, saveState, clearState, loadLanguage, saveLanguage } from '@src/storage';
+import { loadState, saveState, clearState, loadLanguage, saveLanguage, exportState, importState } from '@src/storage';
 import type { Domain } from '@src/types';
 
 const createDomain = (overrides: Partial<Domain> = {}): Domain => ({
@@ -70,6 +70,34 @@ describe('Storage', () => {
       throw new Error('Storage disabled');
     });
     expect(loadState()).toBeNull();
+  });
+
+  it('should return raw JSON string when data exists', () => {
+    const domains = [createDomain()];
+    vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ domains }));
+
+    const result = exportState();
+    expect(result).toBe(JSON.stringify({ domains }));
+  });
+
+  it('should return null when no data exists for export', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(null);
+    expect(exportState()).toBeNull();
+  });
+
+  it('should return raw string even if JSON is malformed', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('not json');
+    expect(exportState()).toBe('not json');
+  });
+
+  it('should write valid domains to localStorage on import', () => {
+    const domains = [createDomain()];
+    importState(domains);
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'te-whare-tapa-wha-assessment',
+      JSON.stringify({ domains })
+    );
   });
 });
 

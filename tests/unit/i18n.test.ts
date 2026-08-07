@@ -207,4 +207,35 @@ describe('i18n', () => {
       });
     });
   });
+
+  describe('Export / Import keys', () => {
+    it('returns English text for export keys', () => {
+      expect(t('export.download', 'en')).toBe('Export assessment data');
+      expect(t('export.button', 'en')).toBe('Export');
+    });
+
+    it('returns Māori text for export keys', () => {
+      expect(t('export.download', 'mi')).toBe('Kawea i ngā raraunga aromātakitanga');
+      expect(t('export.button', 'mi')).toBe('Kawea');
+    });
+
+    it('returns English text for import keys', () => {
+      expect(t('import.button', 'en')).toBe('Import');
+      expect(t('import.error', 'en')).toBe('Import failed. Please check the file format.');
+    });
+
+    it('returns Māori text for import keys', () => {
+      expect(t('import.button', 'mi')).toBe('Kuhu');
+      expect(t('import.error', 'mi')).toBe('I rahua te kuhu. Tēnā whakamātau anō i te hōtuku.');
+    });
+
+    it('export and import keys are present in both languages', () => {
+      const enKeys = new Set(getKeysForLanguage('en'));
+      const miKeys = new Set(getKeysForLanguage('mi'));
+      ['export.download', 'export.button', 'import.button', 'import.error'].forEach((key) => {
+        expect(enKeys.has(key)).toBe(true);
+        expect(miKeys.has(key)).toBe(true);
+      });
+    });
+  });
 });

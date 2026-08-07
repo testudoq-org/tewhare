@@ -26,6 +26,26 @@ export const saveState = (domains: readonly Domain[]): void => {
   }
 };
 
+export const exportState = (): string | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return saved;
+    }
+  } catch {
+    // Ignore export errors
+  }
+  return null;
+};
+
+export const importState = (domains: readonly Domain[]): void => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ domains: [...domains] }));
+  } catch {
+    // Ignore import errors
+  }
+};
+
 export const clearState = (): void => {
   try {
     localStorage.removeItem(STORAGE_KEY);

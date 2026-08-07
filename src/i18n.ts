@@ -90,6 +90,12 @@ const translations = {
     'summary.startNew': 'Start a new reflection',
     'summary.avgNote': 'Average across dimensions: {avg}',
 
+    // Export / Import
+    'export.download': 'Export assessment data',
+    'export.button': 'Export',
+    'import.button': 'Import',
+    'import.error': 'Import failed. Please check the file format.',
+
     // Dialog
     'dialog.resetConfirm':
       'Start a new reflection? Your current scores and notes will be cleared.',
@@ -164,6 +170,12 @@ const translations = {
     'summary.print': 'Tāpata i te mātaitai',
     'summary.startNew': 'Tīmata whakamātautautā hou',
     'summary.avgNote': 'Neutoti i waenganui i ngā ara: {avg}',
+
+    // Export / Import
+    'export.download': 'Kawea i ngā raraunga aromātakitanga',
+    'export.button': 'Kawea',
+    'import.button': 'Kuhu',
+    'import.error': 'I rahua te kuhu. Tēnā whakamātau anō i te hōtuku.',
 
     // Dialog
     'dialog.resetConfirm':

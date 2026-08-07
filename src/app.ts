@@ -7,7 +7,7 @@ import {
   createDefaultDomains,
   cloneDomains
 } from './types';
-import { loadState, saveState, clearState, loadLanguage, saveLanguage } from './storage';
+import { loadState, saveState, clearState, loadLanguage, saveLanguage, exportState, importState } from './storage';
 import { drawChart } from './chart';
 import { t, type Language, DEFAULT_LANGUAGE } from './i18n';
 
@@ -121,6 +121,24 @@ class App {
         window.print();
       }
 
+      if (target.matches('[data-action="export"]')) {
+        const json = exportState();
+        if (json) {
+          const blob = new Blob([json], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'te-whare-tapa-wha-assessment.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      if (target.matches('[data-action="import"]')) {
+        const input = document.querySelector('[data-import-input]') as HTMLInputElement | null;
+        input?.click();
+      }
+
       if (target.matches('[data-action="edit"]')) {
         const domainId = target.getAttribute('data-domain');
         if (domainId) {
@@ -158,6 +176,36 @@ class App {
         if (domain) {
           domain.reflection = target.value;
           saveState(this.state.domains);
+        }
+      }
+    });
+
+    document.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+
+      if (target.matches('[data-import-input]')) {
+        const file = target.files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const parsed = JSON.parse(reader.result as string);
+              if (parsed.domains && Array.isArray(parsed.domains)) {
+                importState(parsed.domains);
+                this.state = {
+                  domains: cloneDomains(parsed.domains),
+                  currentStep: 0,
+                  showSummary: false
+                };
+                this.render();
+              } else {
+                alert(t('import.error', this.language));
+              }
+            } catch {
+              alert(t('import.error', this.language));
+            }
+          };
+          reader.readAsText(file);
         }
       }
     });
@@ -396,6 +444,8 @@ class App {
     const backToEdit = escapeHtml(t('summary.backToEdit', this.language));
     const printBtn = escapeHtml(t('summary.print', this.language));
     const startNew = escapeHtml(t('summary.startNew', this.language));
+    const exportBtn = escapeHtml(t('export.button', this.language));
+    const importBtn = escapeHtml(t('import.button', this.language));
     const avgNote = escapeHtml(
       t('summary.avgNote', this.language, { avg: avg.toFixed(1) })
     );
@@ -441,6 +491,9 @@ class App {
           <div class="summary-actions">
             <button type="button" class="btn secondary" data-action="prev">${backToEdit}</button>
             <button type="button" class="btn primary" data-action="print">${printBtn}</button>
+            <button type="button" class="btn text" data-action="export">${exportBtn}</button>
+            <button type="button" class="btn text" data-action="import">${importBtn}</button>
+            <input type="file" accept=".json" data-import-input style="display: none;" />
             <button type="button" class="btn text" data-action="reset">${startNew}</button>
           </div>
         </div>

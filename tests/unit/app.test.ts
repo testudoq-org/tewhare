@@ -505,4 +505,35 @@ describe('App', () => {
     // spread = 1, so should show scoreBalanced
     expect(app?.textContent).toContain('with only small differences between dimensions');
   });
+
+  it('should show export and import buttons on summary screen', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('data-action="export"');
+    expect(app?.innerHTML).toContain('data-action="import"');
+    expect(app?.innerHTML).toContain('data-import-input');
+  });
+
+  it('should trigger file input when import button is clicked', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const fileInput = document.querySelector('[data-import-input]') as HTMLInputElement | null;
+    const clickSpy = vi.spyOn(fileInput!, 'click');
+
+    document.querySelector('[data-action="import"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(clickSpy).toHaveBeenCalled();
+    clickSpy.mockRestore();
+  });
 });
