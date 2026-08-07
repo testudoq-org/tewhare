@@ -38,12 +38,16 @@ body {
   color: var(--ink);
   line-height: 1.55;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 #app {
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(3rem, env(safe-area-inset-bottom));
 }
 
 /* Buttons */
@@ -52,7 +56,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  padding: 0.7rem 1.4rem;
+  padding: 0.75rem 1.25rem;
   font-size: 1rem;
   font-family: inherit;
   font-weight: 600;
@@ -60,6 +64,8 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .btn:disabled {
@@ -89,8 +95,9 @@ body {
 .btn.text {
   background: transparent;
   color: var(--ink-muted);
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.75rem;
   font-weight: 500;
+  min-height: 44px;
 }
 
 .btn.text:hover {
@@ -99,7 +106,8 @@ body {
 
 .btn.small {
   font-size: 0.875rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.4rem 0.6rem;
+  min-height: 36px;
 }
 
 /* Language Selector */
@@ -349,13 +357,14 @@ input[type="range"] {
   background: var(--border);
   border-radius: 4px;
   outline: none;
+  touch-action: manipulation;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
@@ -364,8 +373,8 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 input[type="range"]::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
@@ -637,6 +646,83 @@ input[type="range"]:focus {
 
   .chart-container {
     max-width: 260px;
+  }
+}
+
+/* Mobile chart readability */
+@media (max-width: 480px) {
+  .chart-label {
+    font-size: 14px;
+  }
+
+  .chart-level-label {
+    font-size: 12px;
+  }
+}
+
+/* Mobile assessment header stack */
+@media (max-width: 400px) {
+  .assessment-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assessment-header .btn {
+    align-self: flex-end;
+  }
+}
+
+/* Mobile summary actions */
+@media (max-width: 480px) {
+  .summary-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-actions .btn {
+    width: 100%;
+  }
+}
+
+/* Safe areas for notched devices */
+@media (max-width: 480px) {
+  #app {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Tablet optimization */
+@media (min-width: 768px) {
+  #app {
+    max-width: 1024px;
+    padding: 2rem;
+  }
+
+  .assessment-body {
+    gap: 2rem;
+  }
+
+  .chart-container {
+    max-width: 360px;
+  }
+
+  .summary-cards {
+    gap: 1.25rem;
+  }
+}
+
+/* Language selector dynamic viewport */
+.lang-selector {
+  min-height: 100dvh;
+}
+
+/* Mobile textarea optimization */
+@media (max-width: 480px) {
+  textarea {
+    min-height: 120px;
+    font-size: 1rem;
   }
 }
 

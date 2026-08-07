@@ -505,7 +505,7 @@ class App {
             <button type="button" class="btn primary" data-action="print">${printBtn}</button>
             <button type="button" class="btn text" data-action="export">${exportBtn}</button>
             <button type="button" class="btn text" data-action="import">${importBtn}</button>
-            <input type="file" accept=".json" data-import-input style="display: none;" />
+            <input type="file" accept=".json" data-import-input style="display: none;" aria-label="${importBtn}" />
             <button type="button" class="btn text" data-action="reset">${startNew}</button>
           </div>
         </div>

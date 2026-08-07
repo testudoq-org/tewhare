@@ -242,4 +242,65 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(app).toContainText('Physical wellbeing');
     await expect(app).toContainText('4 / 5');
   });
+
+  test('should render complete flow on mobile viewport without horizontal scroll', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    await page.click('button[data-action="select-lang"][data-lang="en"]');
+    await page.click('button[data-action="start"]');
+
+    for (let i = 0; i < 4; i++) {
+      await page.click('button[data-action="next"]');
+    }
+
+    const app = page.locator('#app');
+    await expect(app).toContainText('Your reflection');
+    await expect(app).toContainText('Export');
+    await expect(app).toContainText('Import');
+
+    const body = page.locator('body');
+    await expect(body).toHaveCSS('overflow-x', 'hidden');
+  });
+
+  test('should render complete flow on tablet viewport', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.setViewportSize({ width: 768, height: 1024 });
+
+    await page.click('button[data-action="select-lang"][data-lang="en"]');
+    await page.click('button[data-action="start"]');
+
+    for (let i = 0; i < 4; i++) {
+      await page.click('button[data-action="next"]');
+    }
+
+    const app = page.locator('#app');
+    await expect(app).toContainText('Your reflection');
+    await expect(app).toContainText('Export');
+    await expect(app).toContainText('Import');
+  });
+
+  test('should render complete flow on mobile landscape without horizontal scroll', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.setViewportSize({ width: 667, height: 375 });
+
+    await page.click('button[data-action="select-lang"][data-lang="en"]');
+    await page.click('button[data-action="start"]');
+
+    for (let i = 0; i < 4; i++) {
+      await page.click('button[data-action="next"]');
+    }
+
+    const app = page.locator('#app');
+    await expect(app).toContainText('Your reflection');
+
+    const body = page.locator('body');
+    await expect(body).toHaveCSS('overflow-x', 'hidden');
+  });
 });
