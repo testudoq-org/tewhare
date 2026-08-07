@@ -10,3 +10,4 @@ Thumbs.db
 .vitest-coverage-*.json
 *.tsbuildinfo
 playwright-report/index.html
+.playwright-mcp/
