@@ -2,7 +2,7 @@
 // Unit tests for App controller
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createDefaultDomains } from '@src/types';
+import { createDefaultDomains, type Domain } from '@src/types';
 import { bootstrap } from '@src/app';
 
 // Mock the modules that depend on DOM/storage
@@ -349,5 +349,160 @@ describe('App', () => {
     // Should show English description as fallback (no descriptionMi defined)
     expect(app?.textContent).toContain('English fallback description');
     expect(app?.textContent).toContain('English fallback prompt');
+  });
+
+  it('should call window.print when print button is clicked from summary', () => {
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="print"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(printSpy).toHaveBeenCalled();
+
+    printSpy.mockRestore();
+  });
+
+  it('should navigate to specific domain step when edit is clicked from summary', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const editBtn = document.querySelector('[data-action="edit"][data-domain="tinana"]') as HTMLElement | null;
+    expect(editBtn).not.toBeNull();
+    editBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('assessment');
+    expect(app?.innerHTML).toContain('Taha tinana');
+  });
+
+  it('should return to last domain assessment when prev is clicked from summary', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="prev"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('assessment');
+    expect(app?.innerHTML).not.toContain('welcome-title');
+    expect(app?.textContent).toContain('Step 4 of');
+  });
+
+  it('should save reflection text to state and localStorage when reflection input changes', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const textarea = document.querySelector('[data-reflection="tinana"]') as HTMLTextAreaElement | null;
+    expect(textarea).not.toBeNull();
+    textarea!.value = 'Test reflection text';
+    textarea!.dispatchEvent(new Event('input', { bubbles: true }));
+
+    expect(saveState).toHaveBeenCalled();
+    const lastCall = vi.mocked(saveState).mock.calls[vi.mocked(saveState).mock.calls.length - 1]!;
+    const domainsArg = lastCall[0] as Domain[];
+    const tinana = domainsArg.find((d) => d.id === 'tinana');
+    expect(tinana?.reflection).toBe('Test reflection text');
+  });
+
+  it('should register DOMContentLoaded listener on module load and bootstrap app', async () => {
+    vi.resetModules();
+    const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+    await import('@src/app');
+    expect(addEventListenerSpy).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
+
+    document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('welcome-title');
+
+    addEventListenerSpy.mockRestore();
+  });
+
+  it('should render quoted reflection text in summary when reflection is non-empty', () => {
+    vi.mocked(loadState).mockReturnValue({
+      domains: [{
+        id: 'tinana',
+        name: 'Physical wellbeing',
+        maoriName: 'Taha tinana',
+        description: 'Test description',
+        prompt: 'Test prompt',
+        score: 3,
+        reflection: 'I feel strong today'
+      }]
+    });
+
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('"I feel strong today"');
+    expect(app?.innerHTML).toContain('summary-note');
+  });
+
+  it('should show correct step indicator after editing domain 4 from summary', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const editBtn = document.querySelector('[data-action="edit"][data-domain="whanau"]') as HTMLElement | null;
+    expect(editBtn).not.toBeNull();
+    editBtn?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.textContent).toContain('Step 4 of 4');
+  });
+
+  it('should navigate to previous domain when prev is clicked during assessment', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(document.getElementById('app')?.textContent).toContain('Step 2 of');
+
+    document.querySelector('[data-action="prev"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('assessment');
+    expect(app?.textContent).toContain('Step 1 of');
+  });
+
+  it('should render balanced score note when spread is 1', () => {
+    const domains = createDefaultDomains();
+    domains[0] = { ...domains[0], score: 4 } as Domain;
+
+    vi.mocked(loadState).mockReturnValue({
+      domains
+    });
+
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const app = document.getElementById('app');
+    // spread = 1, so should show scoreBalanced
+    expect(app?.textContent).toContain('with only small differences between dimensions');
   });
 });
