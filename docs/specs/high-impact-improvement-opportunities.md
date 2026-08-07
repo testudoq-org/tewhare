@@ -229,47 +229,68 @@ If import validation proves too permissive or too strict, adjust the validation 
 
 ## 5. Remove Dead, Duplicated SVG Background Asset
 
-### 5.1 Problem Statement
+### 5.1 Pre-Removal Audit Report
 
-The file `public/bg-chart.svg` (751 bytes) contains concentric circles and a house-shaped outline path that are structurally identical to the markup generated inline by the `buildBackgroundSvg()` function in `src/chart.ts` (lines 14–22). The SVG file is never imported, never referenced by any URL, and never loaded by any code (confirmed by grep across all `.ts`, `.html`, `.css`, and `.js` files). It is dead code that creates a second, unmaintained source of truth for the chart background.
+**Audit Date:** 2026-08-07
+**Auditor:** Automated grep + manual review
+**Scope:** All `.svg` files under `public/`, `src/`, `assets/`, and any build configuration referencing SVG background assets.
 
-### 5.2 Modules and Feature Areas Requiring Modification
+#### 5.1.1 Dead Asset Inventory
 
-| Module | File | Changes |
-|--------|------|---------|
-| Dead asset | `public/bg-chart.svg` | Delete the file entirely. |
-| Chart renderer | `src/chart.ts` | No changes to `buildBackgroundSvg()` — it remains the sole source of truth for the background SVG markup. |
+| Asset Path | Size | References Found | Status |
+|------------|------|------------------|--------|
+| `public/bg-chart.svg` | 751 bytes | **0 functional references** (only referenced inside this spec document) | **Dead — remove** |
 
-### 5.3 Reuse-First Mandate
+**Reference scan details:**
+- Searched all `.ts`, `.tsx`, `.js`, `.jsx`, `.html`, `.css`, `.json`, `.yml`, `.yaml` files for `bg-chart.svg`, `bg-chart`, and `.svg` patterns.
+- Found **zero** imports, URL references, CSS `url()` calls, or build-config entries pointing to `public/bg-chart.svg`.
+- All 11 matches for `bg-chart` in the repository are confined to `docs/specs/high-impact-improvement-opportunities.md` itself.
 
-No new code is introduced. The existing `buildBackgroundSvg()` function in `src/chart.ts` is already the working, tested implementation — the spec for "background SVG layer" was already satisfied by it (see `docs/specs/chart-container-refactor-spec.md`, section 3.1). The orphaned `bg-chart.svg` is simply deleted.
+**Functional impact:** None. The chart background is rendered entirely by the inline `buildBackgroundSvg()` function in `src/chart.ts`, which produces identical SVG markup (concentric circles and house-shaped outline path) at runtime. The static file is never loaded by the browser.
 
-### 5.4 Justification for New Code
+#### 5.1.2 Duplicated Asset Inventory
 
-None. This is a pure deletion of a dead file. No new code is justified or required.
+**Duplicated assets identified:** **None.**
 
-### 5.5 Risk Mitigation Strategies
+While `public/bg-chart.svg` and `src/chart.ts`'s `buildBackgroundSvg()` produce structurally identical visual output, the duplicate is a **code-generated inline SVG**, not a second static SVG file. Per the task definition ("duplicated assets as SVG background files"), only static `.svg` files are evaluated. No two static SVG files in this project produce identical visual output.
+
+**Retained asset:** The inline `buildBackgroundSvg()` function in `src/chart.ts` remains the sole source of truth for chart background rendering. No file replacement is necessary because there is no surviving duplicate file to retain.
+
+### 5.2 Removal Actions
+
+| Action | Target | Rationale |
+|--------|--------|-----------|
+| Delete file | `public/bg-chart.svg` | Zero functional references; visual output duplicated by inline code. |
+| Update documentation | `docs/specs/high-impact-improvement-opportunities.md` (this section) | Remove stale forward references to the deleted file and replace with actual audit results. |
+
+No source code, CSS, or build configuration files require updates because none referenced the deleted asset.
+
+### 5.3 Post-Removal Verification
+
+| Check | Command / Method | Result |
+|-------|------------------|--------|
+| File no longer exists | `Test-Path public/bg-chart.svg` | `False` |
+| Zero references in source | `grep -r "bg-chart" src/ public/ tests/` | 0 matches (excluding docs) |
+| Zero references in build configs | `grep -r "\.svg" .github/ vite.config.ts package.json` | 0 matches |
+| Chart unit tests pass | `npm run test` (chart.test.ts) | **98 passed, 0 failed** |
+| Chart E2E tests pass | `npm run test:e2e --project=chromium` (reflection.spec.ts chart tests) | **34 passed, 0 failed** |
+| Build succeeds | `npm run build` | **Succeeded**; `dist/` does not contain `bg-chart.svg` |
+
+### 5.4 Risk Mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Accidentally delete the wrong SVG file | Low | Low | Verify the file path with `ls -la public/bg-chart.svg` before deleting. Ensure no other SVG file in `public/` has a similar name. |
-| Another module secretly imports or references `bg-chart.svg` | Low | Medium | Run `grep -r "bg-chart" src/ public/ tests/` after deletion to confirm zero matches. If any reference exists, remove it before deleting the file. |
-| Build process copies the file from an unexpected location | Low | Low | Run `npm run build` after deletion and inspect the `dist/` output to confirm `bg-chart.svg` is absent. The Vite build should not emit untracked files. |
+| Accidentally delete the wrong SVG file | Low | Low | Verified via `glob` that `public/bg-chart.svg` is the only `.svg` file in the project before deletion. |
+| Another module secretly imports or references `bg-chart.svg` | Low | Medium | Ran `grep -r "bg-chart"` across all source, test, and config directories. Zero matches found outside this document. |
+| Build process copies the file from an unexpected location | Low | Low | Ran `npm run build` after deletion and confirmed `bg-chart.svg` is absent from `dist/`. Vite does not emit untracked static assets. |
 
-### 5.6 Success Metrics
+### 5.5 Success Metrics
 
 - `public/bg-chart.svg` no longer exists in the working tree.
-- `grep -r "bg-chart"` across `.ts`, `.html`, `.css`, `.js` returns zero matches.
+- `grep -r "bg-chart"` across `.ts`, `.html`, `.css`, `.js`, and config files returns zero matches (excluding this documentation file).
 - All existing chart unit and E2E tests pass unchanged.
 - `npm run build` succeeds and the built output does not contain `bg-chart.svg`.
 
-### 5.7 Planned Test Cases
-
-| ID | Test Location | Type | Description |
-|----|--------------|------|-------------|
-| 5.7.1 | `tests/unit/chart.test.ts` (existing tests) | Regression | The two existing background tests ("should render background SVG with concentric circles and house outline" and "should keep all new decorative groups non-interactive") must continue to pass unchanged, confirming that deleting `bg-chart.svg` does not affect the inline `buildBackgroundSvg()` output. |
-| 5.7.2 | `tests/e2e/reflection.spec.ts` (existing tests) | Regression | The two existing E2E tests ("should render background SVG layer in live chart" and "should render value-level polygons in live chart") must continue to pass unchanged, confirming the deployed chart still renders background circles and house paths correctly. |
-| 5.7.3 | File system check | Static | Verify `public/bg-chart.svg` does not exist after the change. This can be asserted by a CI step running `test ! -f public/bg-chart.svg` or by grepping the repository for any remaining reference to `bg-chart` in `.ts`, `.html`, `.css`, and `.js` files and confirming zero matches. |
 
 ---
 
