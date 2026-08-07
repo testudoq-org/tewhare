@@ -27,6 +27,7 @@ class App {
   private state: AssessmentState;
   private language: Language;
   private showLanguageSelector: boolean;
+  private showExportScreen = false;
 
   constructor() {
     const savedLang = loadLanguage();
@@ -122,6 +123,12 @@ class App {
       }
 
       if (target.matches('[data-action="export"]')) {
+        this.showExportScreen = true;
+        this.render();
+        return;
+      }
+
+      if (target.matches('[data-action="export-download"]')) {
         const json = exportState();
         if (json) {
           const blob = new Blob([json], { type: 'application/json' });
@@ -132,6 +139,13 @@ class App {
           a.click();
           URL.revokeObjectURL(url);
         }
+        return;
+      }
+
+      if (target.matches('[data-action="export-back"]')) {
+        this.showExportScreen = false;
+        this.render();
+        return;
       }
 
       if (target.matches('[data-action="import"]')) {
@@ -251,6 +265,8 @@ class App {
 
     if (this.showLanguageSelector) {
       app.innerHTML = this.renderLanguageSelector();
+    } else if (this.showExportScreen) {
+      app.innerHTML = this.renderExportScreen();
     } else if (this.state.currentStep === 0) {
       app.innerHTML = this.renderWelcome();
     } else if (this.state.showSummary) {
@@ -495,6 +511,33 @@ class App {
             <button type="button" class="btn text" data-action="import">${importBtn}</button>
             <input type="file" accept=".json" data-import-input style="display: none;" />
             <button type="button" class="btn text" data-action="reset">${startNew}</button>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  private renderExportScreen(): string {
+    const title = escapeHtml(t('export.title', this.language));
+    const description = escapeHtml(t('export.description', this.language));
+    const downloadBtn = escapeHtml(t('export.downloadButton', this.language));
+    const backBtn = escapeHtml(t('export.back', this.language));
+    const domains = this.state.domains;
+    const domainList = domains.map((d) => {
+      const name = this.language === 'mi' ? d.maoriName : d.name;
+      return `<li>${escapeHtml(name)}: ${d.score} / 5</li>`;
+    }).join('');
+
+    return `
+      <section class="export-screen" aria-labelledby="export-title">
+        <div class="export-content">
+          <h1 id="export-title">${title}</h1>
+          <p class="export-description">${description}</p>
+          <ul class="export-domain-list">
+            ${domainList}
+          </ul>
+          <div class="export-actions">
+            <button type="button" class="btn secondary" data-action="export-back">${backBtn}</button>
+            <button type="button" class="btn primary" data-action="export-download">${downloadBtn}</button>
           </div>
         </div>
       </section>`;

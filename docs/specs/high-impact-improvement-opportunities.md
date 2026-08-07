@@ -323,239 +323,157 @@ No change is considered complete until all six gates pass.
 
 ---
 
-## 6. Button Design System Audit, Tertiary Variant Evaluation, and UX Update Plan
+## 6. Improve Export / Kawea flow
 
-### 6.1 Current Button Architecture
+### 6.1 Problem Statement
 
-The project's button system is defined in `public/styles.css` and consists of a base `.btn` class plus four modifiers:
+The Export button in the summary footer uses the `.btn.text` CSS variant (transparent background, muted `var(--ink-muted)` text colour). On light backgrounds it is effectively invisible. Additionally, clicking it immediately triggers a JSON file download with no intermediate view -- the user has no chance to review what will be exported before the download fires.
 
-| Variant | Selector | Background | Text Color | Border | Padding | Font Weight | Hover Behavior |
-|---------|----------|------------|------------|--------|---------|-------------|----------------|
-| Base | `.btn` | — | — | 2px solid transparent | 0.7rem 1.4rem | 600 | N/A |
-| Primary | `.btn.primary` | `var(--accent)` | `#fff` | transparent | inherited | inherited | `var(--accent-hover)` |
-| Secondary | `.btn.secondary` | `var(--surface)` | `var(--accent)` | `var(--accent)` | inherited | inherited | `var(--accent-soft)` |
-| Text | `.btn.text` | `transparent` | `var(--ink-muted)` | transparent | 0.4rem 0.6rem | 500 | `var(--accent)` only |
-| Small | `.btn.small` | — | — | — | 0.3rem 0.5rem | — | — |
+This combines two UX problems: discoverability (the action is hidden) and lack of transparency (no preview before download).
 
-### 6.2 Button Usage Map and Semantic Audit
+### 6.2 Modules and Feature Areas Requiring Modification
 
-| Button Label | `data-action` | Variant | Location | Semantic Role | Current Fit |
-|--------------|---------------|---------|----------|---------------|-------------|
-| Begin reflection | `start` | primary | Welcome | Primary CTA | ✅ Correct |
-| Next | `next` | primary | Assessment nav | Forward progression | ✅ Correct |
-| Print or save as PDF | `print` | primary | Summary | Primary action | ✅ Acceptable |
-| Back / Hoki | `prev` | secondary | Assessment/Summary nav | Secondary navigation | ✅ Correct |
-| Start over | `reset` | text | Assessment header | **Destructive** (clears all data) | ❌ Wrong |
-| Edit | `edit` | text small | Summary card | Inline secondary | ⚠️ Borderline |
-| Export | `export` | text | Summary footer | Data utility | ✅ Acceptable |
-| Import | `import` | text | Summary footer | Data utility | ✅ Acceptable |
-| Start a new reflection | `reset` | text | Summary footer | **Destructive** (clears all data) | ❌ Wrong |
+| Module | File | Changes |
+|--------|------|---------|
+| App controller | `src/app.ts` | Add `showExportScreen` boolean flag; update `render()` to show export screen before summary; add `[data-action="export"]`, `[data-action="export-download"]`, and `[data-action="export-back"]` event handlers; add new `renderExportScreen()` method. |
+| i18n engine | `src/i18n.ts` | Add 4 new keys (`export.title`, `export.description`, `export.downloadButton`, `export.back`) to both `en` and `mi` dictionaries. |
+| Unit tests | `tests/unit/app.test.ts` | Add 3 new tests covering: export screen display, back navigation, and download trigger. |
+| Unit tests | `tests/unit/i18n.test.ts` | Add new describe block verifying the 4 new keys in both languages and confirming identical key sets. |
+| No new files | -- | All changes are additive to existing files. |
 
-### 6.3 Identified Gaps
+### 6.3 Reuse-First Mandate
 
-**6.3.1 Destructive-action misclassification**
+- The existing `exportState()` function from `src/storage.ts` must be reused as the sole source of exported JSON data. No new storage functions are introduced.
+- The existing `t()` function must be used for all new UI strings. No hardcoded English or Māori text is permitted in `app.ts`.
+- The existing `escapeHtml()` helper must wrap every interpolated string in the new `renderExportScreen()` template literal.
+- The existing event-delegation pattern in `bindEvents()` must be extended; no new event listeners or separate handler methods are introduced.
+- The existing `.btn`, `.btn.primary`, and `.btn.secondary` CSS classes must be reused for the export screen buttons.
 
-The `[data-action="reset"]` button invokes `clearState()` and resets all domains to defaults. This is a **destructive, irreversible action** with high data-loss impact. Per WCAG 2.1 Success Criterion 3.2.1 (On Focus) and Nielsen's "Error prevention" heuristic, destructive actions must be visually distinguished from low-emphasis utility actions.
+### 6.4 Justification for Any New Code
 
-Currently, `Start over` and `Start a new reflection` are styled identically to `Edit`, `Export`, and `Import` — all using `.btn.text` with no visual differentiation.
+The `showExportScreen` boolean flag is **unavoidable** because the existing `this.state.showSummary` boolean already controls a mutually exclusive view (summary vs assessment). Adding a third view requires a separate flag to avoid conflating export-screen state with summary state.
 
-**6.3.2 Missing interactive states on `.btn.text`**
+The 4 new i18n keys are **unavoidable** because the project's i18n test suite enforces identical key sets across English and Māori dictionaries (see `tests/unit/i18n.test.ts`, test "English and Māori dictionaries have identical key sets"). Any new UI string must have a corresponding key in both languages or the completeness test fails.
 
-```css
-/* CURRENT STATE — gaps marked */
-.btn.text {
-  background: transparent;
-  color: var(--ink-muted);
-  padding: 0.4rem 0.6rem;
-  font-weight: 500;
-  /* MISSING: :active state */
-  /* MISSING: :focus-visible enhancement (relies on global :focus-visible) */
-  /* MISSING: :disabled state (relies on global .btn:disabled) */
-}
+The `renderExportScreen()` method is **unavoidable** because it must access `this.language` and `this.state.domains` to render localized content and domain scores. A standalone function outside the class would require passing these values explicitly, violating the existing encapsulation pattern.
 
-.btn.text:hover {
-  color: var(--accent);
-  /* MISSING: background feedback */
-}
-```
+### 6.5 Implementation Details
 
-- **No `:active` state**: Pressing the button provides no visual feedback.
-- **No `:focus-visible` enhancement**: Relies on the global `outline: 2px solid var(--accent)` at `:focus-visible`, which is acceptable but not explicit.
-- **No `:disabled` state**: Relies on the global `.btn:disabled { opacity: 0.45; cursor: not-allowed; }`, which applies but is not scoped to text buttons.
-- **Hover provides only color change**: No background feedback, making hover detection harder on light backgrounds.
+#### 6.5.1 State flag
 
-**6.3.3 Inconsistent sizing**
+Add `private showExportScreen = false;` to the `App` class, placed after `private showLanguageSelector: boolean;`. Defaults to `false` so the app boots into the welcome screen as before.
 
-`.btn.text` has reduced padding (0.4rem 0.6rem) compared to the base `.btn` (0.7rem 1.4rem), but the `.small` modifier is applied inconsistently:
-- Edit button: `.btn.text.small` (further reduced)
-- Export/import/reset: `.btn.text` without `.small`
+#### 6.5.2 Render order update
 
-This creates an inconsistent visual rhythm in the summary footer.
+Update `render()` to check `showExportScreen` before `showSummary`:
 
-**6.3.4 No semantic middle ground**
-
-The current hierarchy has a large visual gap between `.btn.secondary` (bordered, `var(--accent)` text) and `.btn.text` (transparent, `var(--ink-muted)` text). There is no variant for:
-- Medium-emphasis actions that need background fill but not full primary weight
-- Destructive actions that need warning-level emphasis without being primary CTAs
-- Tertiary navigation actions (e.g., "Save draft", "Share")
-
-### 6.4 Case for `.btn.tertiary`
-
-A tertiary variant is justified because:
-
-1. **Semantic clarity**: It provides a distinct visual weight for actions like "Start new reflection" that are more important than utility text buttons but less important than primary/secondary actions.
-
-2. **Destructive-action pattern**: A tertiary variant can serve as the base for a destructive-action modifier (`.btn.destructive`) or simply provide enough visual weight that a destructive action is not mistaken for a neutral text button.
-
-3. **Future extensibility**: The app currently has 10 button instances across 3 contexts (welcome, assessment, summary). As features grow (export, import, print), the need for a middle-ground button increases.
-
-4. **Design system completeness**: Most design systems (Material Design, Apple HIG, IBM Carbon) define at least three button levels: primary, secondary, and tertiary/text. The current system is incomplete.
-
-### 6.5 Proposed `.btn.tertiary` Specification
-
-**6.5.1 Visual States**
-
-```css
-/* Normal */
-.btn.tertiary {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 2px solid transparent;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  font-family: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, transform 0.1s;
-}
-
-/* Hover */
-.btn.tertiary:hover:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-}
-
-/* Active / Pressed */
-.btn.tertiary:active:not(:disabled) {
-  transform: translateY(1px);
-  background: var(--accent-hover);
-}
-
-/* Focus Visible */
-.btn.tertiary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Disabled */
-.btn.tertiary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+```typescript
+if (this.showLanguageSelector) {
+  app.innerHTML = this.renderLanguageSelector();
+} else if (this.showExportScreen) {
+  app.innerHTML = this.renderExportScreen();
+} else if (this.state.currentStep === 0) {
+  app.innerHTML = this.renderWelcome();
+} else if (this.state.showSummary) {
+  app.innerHTML = this.renderSummary();
+  this.updateChart();
+} else {
+  app.innerHTML = this.renderAssessment();
+  this.updateChart();
 }
 ```
 
-**6.5.2 Variant Matrix**
+#### 6.5.3 Export button handler change
 
-| State | Background | Text Color | Border | Additional |
-|-------|------------|------------|--------|------------|
-| Normal | `var(--accent-soft)` (#e8f0ec) | `var(--accent)` (#2c5f4a) | 2px solid transparent | — |
-| Hover | `var(--accent)` (#2c5f4a) | `#fff` | transparent | — |
-| Active | `var(--accent-hover)` (#234d3c) | `#fff` | transparent | `transform: translateY(1px)` |
-| Focus-visible | — | — | — | `outline: 2px solid var(--accent); outline-offset: 2px` |
-| Disabled | — | — | — | `opacity: 0.45; cursor: not-allowed` |
+Change the existing `[data-action="export"]` handler from immediately downloading to showing the export screen:
 
-**6.5.3 Accessibility Compliance Requirements**
+```typescript
+if (target.matches('[data-action="export"]')) {
+  this.showExportScreen = true;
+  this.render();
+  return;
+}
+```
 
-- **Color contrast**: Normal state (`#2c5f4a` on `#e8f0ec`) — contrast ratio 4.6:1 ✅ WCAG AA
-- **Focus indicator**: 2px solid accent outline with 2px offset, visible on all interactive states
-- **Touch target**: Minimum 44×44px (padding 0.5rem 1rem on 16px base = ~32px height, **FAILS**). Must increase padding to `0.6rem 1.2rem` or set `min-height: 44px`.
-- **Disabled state**: Clear visual and cursor indication
-- **Reduced motion**: Respects existing `@media (prefers-reduced-motion: reduce)` rule
+#### 6.5.4 New event handlers
 
-### 6.6 UX Update Plan
+Add two new handlers in `bindEvents()` after the modified export handler:
 
-#### Phase 1: Foundation (Week 1)
+```typescript
+// Performs the actual download
+if (target.matches('[data-action="export-download"]')) {
+  const json = exportState();
+  if (json) {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'te-whare-tapa-wha-assessment.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  return;
+}
 
-**Objective**: Introduce `.btn.tertiary` without breaking existing functionality.
+// Returns to summary view
+if (target.matches('[data-action="export-back"]')) {
+  this.showExportScreen = false;
+  this.render();
+  return;
+}
+```
 
-| Task | Owner | Files | Effort |
-|------|-------|-------|--------|
-| Add `.btn.tertiary` styles to `public/styles.css` | Frontend | `public/styles.css` | 1 hour |
-| Fix `.btn.text` missing states (`:active`, `:focus-visible`, `:disabled`) | Frontend | `public/styles.css` | 30 min |
-| Increase `.btn.tertiary` touch target to 44×44px minimum | Frontend | `public/styles.css` | 15 min |
-| Add `.btn.destructive` modifier (inherits tertiary, uses warning colors) | Frontend | `public/styles.css` | 30 min |
-| Document button variants in `docs/design-system/buttons.md` | Design | New file | 2 hours |
+#### 6.5.5 Export screen template
 
-#### Phase 2: Component Migration (Week 2)
+The `renderExportScreen()` method produces a `<section class="export-screen">` containing:
+- An `<h1>` with the localized `export.title`
+- A `<p>` with the localized `export.description`
+- A `<ul class="export-domain-list">` showing each domain name and score (`X / 5`)
+- A button group with `[data-action="export-back"]` (`.btn.secondary`) and `[data-action="export-download"]` (`.btn.primary`)
 
-**Objective**: Migrate destructive actions to appropriate variants.
+Domain names in the list use the current language (`this.language === 'mi' ? d.maoriName : d.name`), matching the pattern used by `domainName()`.
 
-| Task | Owner | Files | Effort |
-|------|-------|-------|--------|
-| Change `Start over` button from `.btn.text` to `.btn.tertiary` | Frontend | `src/app.ts` line 349 | 15 min |
-| Change `Start a new reflection` button from `.btn.text` to `.btn.destructive` | Frontend | `src/app.ts` line 497 | 15 min |
-| Update E2E tests to verify new button classes | QA | `tests/e2e/reflection.spec.ts` | 1 hour |
-| Update unit tests for new CSS classes | QA | `tests/unit/app.test.ts` | 30 min |
+### 6.6 New i18n Keys
 
-#### Phase 3: Accessibility Validation (Week 2–3)
+| Key | English | Māori |
+|-----|---------|-------|
+| `export.title` | Export your reflection | Kawea tō whakamātautautā |
+| `export.description` | Review your assessment data below, then download it as a JSON file. | Tirohia ō raraunga aromātakitanga ki raro, kātahi ka kukuhia hei kōnae JSON. |
+| `export.downloadButton` | Download JSON file | Kukuhia te kōnae JSON |
+| `export.back` | Back to summary | Hoki ki te whakarāpopotanga |
 
-**Objective**: Ensure WCAG 2.1 AA compliance across all button variants.
+These are additive -- existing keys (`export.download`, `export.button`, `import.button`, `import.error`) are unchanged.
 
-| Task | Owner | Method | Pass Criteria |
-|------|-------|--------|---------------|
-| Color contrast audit | Accessibility | axe DevTools / Lighthouse | All variants ≥ 4.5:1 |
-| Keyboard navigation test | QA | Manual + Playwright | All buttons reachable via Tab, activated via Enter/Space |
-| Focus indicator visibility | QA | Manual + screenshot diff | Focus ring visible on all variants |
-| Screen reader announcement | Accessibility | NVDA / VoiceOver | Button role and label announced correctly |
-| Touch target measurement | QA | Browser DevTools | All buttons ≥ 44×44px |
-| Reduced motion test | QA | DevTools emulation | No transitions when `prefers-reduced-motion: reduce` |
+### 6.7 Planned Test Cases
 
-#### Phase 4: Stakeholder Review (Week 3)
+| ID | Test Location | Description |
+|----|--------------|-------------|
+| 6.7.1 | `tests/unit/app.test.ts` | **Export screen shows on export button click:** Bootstrap, navigate to summary, click `[data-action="export"]`, assert `export-title`, `export-domain-list`, `data-action="export-download"`, and `data-action="export-back"` are present in the DOM. |
+| 6.7.2 | `tests/unit/app.test.ts` | **Back returns to summary:** From export screen, click `[data-action="export-back"]`, assert `summary-title` and `data-action="export"` are present. |
+| 6.7.3 | `tests/unit/app.test.ts` | **Download triggers blob download:** From export screen, click `[data-action="export-download"]`, assert `URL.createObjectURL` and `URL.revokeObjectURL` are called. |
+| 6.7.4 | `tests/unit/i18n.test.ts` | **Export screen keys return correct English text:** Assert each of the 4 new keys returns the expected English string. |
+| 6.7.5 | `tests/unit/i18n.test.ts` | **Export screen keys return correct Māori text:** Assert each of the 4 new keys returns the expected Māori string. |
+| 6.7.6 | `tests/unit/i18n.test.ts` | **Export screen keys present in both language dictionaries:** Assert all 4 new keys exist in both `getKeysForLanguage('en')` and `getKeysForLanguage('mi')`. |
 
-**Objective**: Gather feedback and iterate before full rollout.
-
-| Task | Owner | Deliverable |
-|------|-------|-------------|
-| Design review meeting | Design + Product | Button spec approved |
-| Accessibility sign-off | Accessibility | WCAG AA compliance verified |
-| Engineering review | Engineering | No regressions in CI |
-| User testing (optional) | UX Researcher | 5 users complete assessment flow without confusion |
-
-#### Phase 5: Phased Rollout (Week 4)
-
-**Objective**: Deploy with monitoring and rollback capability.
-
-| Step | Environment | Duration | Success Criteria |
-|------|-------------|----------|------------------|
-| Deploy to staging | Staging | 1 day | All tests pass, visual regression diff clean |
-| Internal dogfooding | Staging | 2 days | No reported button confusion or accessibility issues |
-| Canary release (10%) | Production | 2 days | No increase in support tickets, no E2E test failures |
-| Full rollout | Production | 1 day | 100% traffic on new button styles |
-| Post-rolloom monitoring | Production | 1 week | Zero critical regressions, accessibility metrics stable |
-
-**Rollback trigger**: Any of the following immediately reverts to previous button styles:
-- E2E test failure rate > 1%
-- Accessibility violation detected in production
-- User-reported confusion or data-loss incidents related to button appearance
-- Visual regression detected by automated screenshot diff
-
-### 6.7 Risk Mitigation
+### 6.8 Risk Mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Users confuse tertiary with secondary | Medium | Low | Use distinct color (`accent-soft` vs `surface`) and test with users |
-| Touch target too small on mobile | Low | Medium | Enforce `min-height: 44px` in CSS and validate in Phase 3 |
-| Destructive button still clicked accidentally | Medium | High | Add `confirm()` dialog before `clearState()` (already exists in app.ts) |
-| Print styles hide new buttons inadvertently | Low | Low | Verify `.btn.tertiary` and `.btn.destructive` are hidden in `@media print` |
-| Color contrast fails on user's display | Low | Medium | Use CSS variables, not hardcoded values; test on multiple displays |
+| User accidentally triggers download without reviewing data | Low | Low | The two-step flow (review screen then download button) ensures the user sees data before download. The download button uses .btn.primary for clear visual emphasis. |
+| Back button returns to wrong view | Low | Medium | `showExportScreen` is a separate boolean from `showSummary`. Setting it to false always returns to the last rendered summary view (the summary is preserved in `this.state.showSummary`). |
+| Export screen does not reflect latest score changes | Low | Low | `renderExportScreen()` reads `this.state.domains` at render time, same as `renderSummary()`. Score changes during assessment are persisted via `saveState()` and reflected in `this.state.domains`. |
+| New i18n keys break key-set completeness test | Low | High | Both `en` and `mi` dictionaries are updated atomically in the same change. The `Translation completeness` test validates identical key sets immediately. |
+| Event delegation order causes handler conflict | Low | Low | The new handlers use unique `data-action` values (`export-download`, `export-back`) that cannot conflict with existing handlers. Each handler returns immediately after execution. |
 
-### 6.8 Success Metrics
+### 6.9 Success Metrics
 
-- All 4 button variants (primary, secondary, tertiary, text) have defined styles, states, and use cases.
-- `.btn.text` has explicit `:active`, `:focus-visible`, and `:disabled` styles.
-- Destructive actions (`reset`) use `.btn.tertiary` or `.btn.destructive`, not `.btn.text`.
-- All buttons meet 44×44px touch target minimum.
-- All buttons pass WCAG 2.1 AA color contrast (≥ 4.5:1).
-- Zero E2E test regressions after migration.
-- Zero accessibility violations in automated audit.
+- The Export button click shows an intermediate export screen (not an immediate download).
+- The export screen displays the title, description, and a list of domain scores.
+- The export screen has working Back and Download buttons.
+- Clicking Back returns to the summary view without data loss.
+- Clicking Download triggers a JSON blob download with the correct filename.
+- All 4 new i18n keys return non-empty, correct strings in both English and Māori.
+- All 4 new keys are present in both language dictionaries (i18n completeness test passes).
+- All 3 new app tests pass.
+- `npm run typecheck` reports zero errors.
+- All pre-existing tests continue to pass (no regressions).

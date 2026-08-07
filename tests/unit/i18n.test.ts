@@ -238,4 +238,29 @@ describe('i18n', () => {
       });
     });
   });
+
+  describe('Export / Kawea screen keys', () => {
+    it('returns English text for export screen keys', () => {
+      expect(t('export.title', 'en')).toBe('Export your reflection');
+      expect(t('export.description', 'en')).toBe('Review your assessment data below, then download it as a JSON file.');
+      expect(t('export.downloadButton', 'en')).toBe('Download JSON file');
+      expect(t('export.back', 'en')).toBe('Back to summary');
+    });
+
+    it('returns Māori text for export screen keys', () => {
+      expect(t('export.title', 'mi')).toBe('Kawea tō whakamātautautā');
+      expect(t('export.description', 'mi')).toBe('Tirohia ō raraunga aromātakitanga ki raro, kātahi ka kukuhia hei kōnae JSON.');
+      expect(t('export.downloadButton', 'mi')).toBe('Kukuhia te kōnae JSON');
+      expect(t('export.back', 'mi')).toBe('Hoki ki te whakarāpopotanga');
+    });
+
+    it('export screen keys are present in both languages', () => {
+      const enKeys = new Set(getKeysForLanguage('en'));
+      const miKeys = new Set(getKeysForLanguage('mi'));
+      ['export.title', 'export.description', 'export.downloadButton', 'export.back'].forEach((key) => {
+        expect(enKeys.has(key)).toBe(true);
+        expect(miKeys.has(key)).toBe(true);
+      });
+    });
+  });
 });

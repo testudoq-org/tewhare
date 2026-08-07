@@ -11,20 +11,23 @@ vi.mock('@src/storage', () => ({
   saveState: vi.fn(),
   clearState: vi.fn(),
   loadLanguage: vi.fn(),
-  saveLanguage: vi.fn()
+  saveLanguage: vi.fn(),
+  exportState: vi.fn(),
+  importState: vi.fn()
 }));
 
 vi.mock('@src/chart', () => ({
   drawChart: vi.fn()
 }));
 
-import { loadState, saveState, clearState, loadLanguage, saveLanguage } from '@src/storage';
+import { loadState, saveState, clearState, loadLanguage, saveLanguage, exportState } from '@src/storage';
 
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(loadState).mockReturnValue(null);
     vi.mocked(loadLanguage).mockReturnValue('en');
+    vi.mocked(exportState).mockReturnValue(JSON.stringify({ domains: [] }));
     document.body.innerHTML = '<div id="app"></div>';
   });
 
@@ -535,5 +538,59 @@ describe('App', () => {
 
     expect(clickSpy).toHaveBeenCalled();
     clickSpy.mockRestore();
+  });
+
+  it('should show export screen when export button is clicked from summary', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="export"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('export-title');
+    expect(app?.innerHTML).toContain('export-domain-list');
+    expect(app?.innerHTML).toContain('data-action="export-download"');
+    expect(app?.innerHTML).toContain('data-action="export-back"');
+  });
+
+  it('should return to summary when back is clicked from export screen', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="export"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('[data-action="export-back"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('summary-title');
+    expect(app?.innerHTML).toContain('data-action="export"');
+  });
+
+  it('should trigger download when download button is clicked from export screen', () => {
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test');
+    const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockReturnValue(undefined);
+
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="export"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('[data-action="export-download"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(createObjectURLSpy).toHaveBeenCalled();
+    expect(revokeObjectURLSpy).toHaveBeenCalled();
+
+    createObjectURLSpy.mockRestore();
+    revokeObjectURLSpy.mockRestore();
   });
 });

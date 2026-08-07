@@ -93,6 +93,10 @@ const translations = {
     // Export / Import
     'export.download': 'Export assessment data',
     'export.button': 'Export',
+    'export.title': 'Export your reflection',
+    'export.description': 'Review your assessment data below, then download it as a JSON file.',
+    'export.downloadButton': 'Download JSON file',
+    'export.back': 'Back to summary',
     'import.button': 'Import',
     'import.error': 'Import failed. Please check the file format.',
 
@@ -174,6 +178,10 @@ const translations = {
     // Export / Import
     'export.download': 'Kawea i ngā raraunga aromātakitanga',
     'export.button': 'Kawea',
+    'export.title': 'Kawea tō whakamātautautā',
+    'export.description': 'Tirohia ō raraunga aromātakitanga ki raro, kātahi ka kukuhia hei kōnae JSON.',
+    'export.downloadButton': 'Kukuhia te kōnae JSON',
+    'export.back': 'Hoki ki te whakarāpopotanga',
     'import.button': 'Kuhu',
     'import.error': 'I rahua te kuhu. Tēnā whakamātau anō i te hōtuku.',
 
