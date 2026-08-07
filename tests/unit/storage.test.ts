@@ -72,12 +72,12 @@ describe('Storage', () => {
     expect(loadState()).toBeNull();
   });
 
-  it('should return raw JSON string when data exists', () => {
+  it('should return parsed domains object when data exists', () => {
     const domains = [createDomain()];
     vi.mocked(localStorage.getItem).mockReturnValue(JSON.stringify({ domains }));
 
     const result = exportState();
-    expect(result).toBe(JSON.stringify({ domains }));
+    expect(result).toEqual({ domains });
   });
 
   it('should return null when no data exists for export', () => {
@@ -85,9 +85,9 @@ describe('Storage', () => {
     expect(exportState()).toBeNull();
   });
 
-  it('should return raw string even if JSON is malformed', () => {
+  it('should return null for invalid JSON on export', () => {
     vi.mocked(localStorage.getItem).mockReturnValue('not json');
-    expect(exportState()).toBe('not json');
+    expect(exportState()).toBeNull();
   });
 
   it('should write valid domains to localStorage on import', () => {
@@ -98,6 +98,20 @@ describe('Storage', () => {
       'te-whare-tapa-wha-assessment',
       JSON.stringify({ domains })
     );
+  });
+
+  it('should throw for invalid import data that is not an array', () => {
+    expect(() => importState('not-an-array' as unknown as readonly Domain[])).toThrow('domains must be an array');
+  });
+
+  it('should throw for domain missing required fields', () => {
+    const badDomain = { id: 'tinana' } as unknown as Domain;
+    expect(() => importState([badDomain])).toThrow('missing required field');
+  });
+
+  it('should throw for domain with out-of-range score', () => {
+    const badDomain = { ...createDomain(), score: 0 };
+    expect(() => importState([badDomain])).toThrow('score must be between 1 and 5');
   });
 });
 

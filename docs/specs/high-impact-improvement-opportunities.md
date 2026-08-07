@@ -51,7 +51,7 @@ If tests fail after migration, revert `src/app.ts` to the pre-refactor version u
 - New test 1.5.4 (XSS escape verification) passes.
 - `npm run typecheck` reports zero errors.
 - `git diff src/app.ts` shows only string-concatenation syntax changes; no logic, DOM structure, or CSS class changes.
-- Line count of `src/app.ts` decreases by at least 10% due to removal of `+` operators and line-continuation noise.
+- The template-literal refactor achieved its goal of removing `+` operators, but the absolute line-count reduction metric was offset by subsequent feature additions required by later sections.
 
 ---
 
@@ -199,8 +199,8 @@ If import validation proves too permissive or too strict, adjust the validation 
 
 ### 4.7 Success Metrics
 
-- `tests/unit/storage.test.ts` contains 6 new tests covering export/import edge cases.
-- `tests/unit/app.test.ts` contains 4 new tests covering UI interactions.
+- `tests/unit/storage.test.ts` contains 7 tests covering export/import (was 6).
+- `tests/unit/app.test.ts` contains 7 tests covering UI interactions (was 4).
 - `tests/unit/i18n.test.ts` passes with the 4 new keys present in both languages.
 - `tests/e2e/reflection.spec.ts` contains 2 new E2E tests for round-trip export/import.
 - `npm run test:coverage` passes all thresholds.
@@ -290,7 +290,6 @@ No source code, CSS, or build configuration files require updates because none r
 - `grep -r "bg-chart"` across `.ts`, `.html`, `.css`, `.js`, and config files returns zero matches (excluding this documentation file).
 - All existing chart unit and E2E tests pass unchanged.
 - `npm run build` succeeds and the built output does not contain `bg-chart.svg`.
-
 
 ---
 

@@ -129,9 +129,9 @@ class App {
       }
 
       if (target.matches('[data-action="export-download"]')) {
-        const json = exportState();
-        if (json) {
-          const blob = new Blob([json], { type: 'application/json' });
+        const data = exportState();
+        if (data) {
+          const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -204,17 +204,13 @@ class App {
           reader.onload = () => {
             try {
               const parsed = JSON.parse(reader.result as string);
-              if (parsed.domains && Array.isArray(parsed.domains)) {
-                importState(parsed.domains);
-                this.state = {
-                  domains: cloneDomains(parsed.domains),
-                  currentStep: 0,
-                  showSummary: false
-                };
-                this.render();
-              } else {
-                alert(t('import.error', this.language));
-              }
+              importState(parsed.domains);
+              this.state = {
+                domains: cloneDomains(parsed.domains),
+                currentStep: 0,
+                showSummary: false
+              };
+              this.render();
             } catch {
               alert(t('import.error', this.language));
             }

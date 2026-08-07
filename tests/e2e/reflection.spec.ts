@@ -43,7 +43,6 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
   test('should show summary after last domain', async ({ page }) => {
     await page.click('[data-action="start"]');
 
-    // Navigate through all 4 domains
     for (let i = 0; i < 4; i++) {
       await page.click('[data-action="next"]');
     }
@@ -98,7 +97,6 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
       await page.click('[data-action="next"]');
     }
 
-    // Override window.print to verify it was called
     await page.evaluate(() => {
       (window as Window & { __printCalled?: boolean }).__printCalled = false;
       const originalPrint = window.print;
@@ -140,14 +138,11 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(chart).toBeVisible();
     await expect(page.locator('#live-chart svg')).toBeVisible();
 
-    // Verify polygon overlay group exists
     await expect(page.locator('#live-chart .chart-value-level-polygons')).toHaveCount(1);
 
-    // Verify exactly 5 polygons
     const polygons = page.locator('#live-chart .chart-value-level-polygons polygon');
     await expect(polygons).toHaveCount(5);
 
-    // Verify polygons have no fill and a stroke
     for (let i = 0; i < 5; i++) {
       const polygon = polygons.nth(i);
       await expect(polygon).toHaveAttribute('fill', 'none');
@@ -160,13 +155,10 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     await expect(page.locator('#live-chart svg')).toBeVisible();
 
-    // Verify background custom group exists
     await expect(page.locator('#live-chart .chart-bg-custom')).toHaveCount(1);
 
-    // Verify background circles exist
     await expect(page.locator('#live-chart .chart-bg-custom circle')).toHaveCount(3);
 
-    // Verify background house outline paths exist
     await expect(page.locator('#live-chart .chart-bg-custom path')).toHaveCount(2);
   });
 
@@ -178,10 +170,8 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     await expect(page.locator('#summary-chart svg')).toBeVisible();
 
-    // Verify polygon overlay group exists
     await expect(page.locator('#summary-chart .chart-value-level-polygons')).toHaveCount(1);
 
-    // Verify exactly 5 polygons
     const polygons = page.locator('#summary-chart .chart-value-level-polygons polygon');
     await expect(polygons).toHaveCount(5);
   });
@@ -195,13 +185,61 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     const scoreValue = page.locator('[data-score-value="tinana"]');
     await expect(scoreValue).toHaveText('5');
 
-    // Verify chart still updates visually
     await expect(page.locator('#live-chart svg')).toBeVisible();
-    // There are 4 domains, so 4 data dots
     await expect(page.locator('#live-chart .chart-dot')).toHaveCount(4);
   });
+
+  test('should export assessment data as downloadable file', async ({ page }) => {
+    await page.click('[data-action="start"]');
+    const slider = page.locator('input[type="range"]');
+    await slider.fill('4');
+    await slider.dispatchEvent('input');
+    for (let i = 0; i < 4; i++) {
+      await page.click('[data-action="next"]');
+    }
+
+    await page.click('button[data-action="export"]');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.click('button[data-action="export-download"]')
+    ]);
+
+    expect(download.suggestedFilename()).toBe('te-whare-tapa-wha-assessment.json');
+  });
+
+  test('should import assessment data from file and restore scores', async ({ page }) => {
+    await page.click('[data-action="start"]');
+    for (let i = 0; i < 4; i++) {
+      await page.click('[data-action="next"]');
+    }
+
+    const assessmentData = {
+      domains: [
+        { id: 'tinana', name: 'Physical wellbeing', maoriName: 'Taha tinana', description: 'Test', prompt: 'Test', score: 4, reflection: 'Strong' },
+        { id: 'hinengaro', name: 'Mental', maoriName: 'Taha hinengaro', description: 'Test', prompt: 'Test', score: 5, reflection: 'Clear' },
+        { id: 'wairua', name: 'Spiritual', maoriName: 'Taha wairua', description: 'Test', prompt: 'Test', score: 3, reflection: '' },
+        { id: 'whanau', name: 'Family', maoriName: 'Taha whānau', description: 'Test', prompt: 'Test', score: 2, reflection: 'Needs work' }
+      ]
+    };
+
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.click('[data-action="import"]')
+    ]);
+
+    await fileChooser.setFiles({
+      name: 'assessment.json',
+      mimeType: 'application/json',
+      buffer: (globalThis as unknown as { Buffer: { from: (data: string) => Buffer } }).Buffer.from(JSON.stringify(assessmentData))
+    });
+
+    await page.waitForTimeout(500);
+
+    await page.click('[data-action="start"]');
+
+    const app = page.locator('#app');
+    await expect(app).toContainText('Physical wellbeing');
+    await expect(app).toContainText('4 / 5');
+  });
 });
-
-
-
-

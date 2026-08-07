@@ -26,11 +26,14 @@ export const saveState = (domains: readonly Domain[]): void => {
   }
 };
 
-export const exportState = (): string | null => {
+export const exportState = (): { readonly domains: Domain[] } | null => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return saved;
+      const parsed = JSON.parse(saved);
+      if (parsed.domains && Array.isArray(parsed.domains)) {
+        return { domains: parsed.domains };
+      }
     }
   } catch {
     // Ignore export errors
@@ -39,6 +42,23 @@ export const exportState = (): string | null => {
 };
 
 export const importState = (domains: readonly Domain[]): void => {
+  if (!Array.isArray(domains)) {
+    throw new Error('Invalid import data: domains must be an array');
+  }
+
+  const requiredFields = ['id', 'name', 'maoriName', 'description', 'prompt', 'score'];
+  for (const domain of domains) {
+    for (const field of requiredFields) {
+      if (!Object.prototype.hasOwnProperty.call(domain, field)) {
+        throw new Error(`Invalid domain: missing required field "${field}"`);
+      }
+    }
+    const score = domain.score;
+    if (typeof score !== 'number' || score < 1 || score > 5) {
+      throw new Error(`Invalid domain: score must be between 1 and 5`);
+    }
+  }
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ domains: [...domains] }));
   } catch {

@@ -5,6 +5,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createDefaultDomains, type Domain } from '@src/types';
 import { bootstrap } from '@src/app';
 
+let nextFileReaderResult: string | ArrayBuffer | null = null;
+
+(globalThis as unknown as { FileReader: unknown }).FileReader = class MockFileReader {
+  result: string | ArrayBuffer | null = null;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  constructor() {
+    this.result = nextFileReaderResult;
+  }
+  readAsText = () => {
+    if (this.onload) this.onload();
+  };
+  readAsDataURL = () => {
+    if (this.onload) this.onload();
+  };
+};
+
 // Mock the modules that depend on DOM/storage
 vi.mock('@src/storage', () => ({
   loadState: vi.fn(),
@@ -27,7 +44,8 @@ describe('App', () => {
     vi.clearAllMocks();
     vi.mocked(loadState).mockReturnValue(null);
     vi.mocked(loadLanguage).mockReturnValue('en');
-    vi.mocked(exportState).mockReturnValue(JSON.stringify({ domains: [] }));
+    vi.mocked(exportState).mockReturnValue({ domains: createDefaultDomains() });
+    nextFileReaderResult = null;
     document.body.innerHTML = '<div id="app"></div>';
   });
 
@@ -51,13 +69,10 @@ describe('App', () => {
     vi.mocked(loadLanguage).mockReturnValue(null);
     bootstrap();
     const app = document.getElementById('app');
-    // Both English and Māori title should be visible
     expect(app?.innerHTML).toContain('Choose your language');
     expect(app?.innerHTML).toContain('Whiriwhi i tō reo');
-    // Both English and Māori subtitle should be visible
     expect(app?.innerHTML).toContain('Select a language to begin');
     expect(app?.innerHTML).toContain('Whiriwhi tētahi reo kia tīmata');
-    // Both language option buttons should be present
     expect(app?.innerHTML).toContain('data-lang="en"');
     expect(app?.innerHTML).toContain('data-lang="mi"');
   });
@@ -177,19 +192,12 @@ describe('App', () => {
     document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
     const app = document.getElementById('app');
-    // Progress label should be in Māori
     expect(app?.innerHTML).toContain('Hāpai');
-    // Step text should be in Māori
     expect(app?.textContent).toContain('Tūtohi 1 o');
-    // Start over button should be in Māori
     expect(app?.textContent).toContain('Tīmata anō');
-    // Chart title should be in Māori
     expect(app?.textContent).toContain('Ko tō āhua o ināianei');
-    // Back button should be in Māori
     expect(app?.textContent).toContain('Hoki');
-    // Next button should be in Māori
     expect(app?.textContent).toContain('Panoni');
-    // Score format should use i18n key (not hardcoded English)
     expect(app?.textContent).toContain(' / 5');
   });
 
@@ -205,11 +213,8 @@ describe('App', () => {
 
     const app = document.getElementById('app');
     expect(app?.textContent).toContain('Tō whakamātautautā');
-    // Print button should be in Māori
     expect(app?.textContent).toContain('Tāpata i te mātaitai');
-    // New reflection button should be in Māori
     expect(app?.textContent).toContain('Tīmata whakamātautautā hou');
-    // Back to edit should be in Māori
     expect(app?.textContent).toContain('Hoki ki te whakatika');
   });
 
@@ -219,7 +224,6 @@ describe('App', () => {
 
     document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-    // Set first domain to 5, second to 3 to create spread > 1
     const input = document.querySelector('input[type="range"]') as HTMLInputElement;
     input.value = '5';
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -229,7 +233,6 @@ describe('App', () => {
     }
 
     const app = document.getElementById('app');
-    // shapeNote should contain Māori domain name since spread > 1
     expect(app?.innerHTML).toContain('Taha tinana');
   });
 
@@ -239,7 +242,6 @@ describe('App', () => {
 
     document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-    // Set first domain to 5 (default for others is 3, spread = 2 > 1)
     const input = document.querySelector('input[type="range"]') as HTMLInputElement;
     input.value = '5';
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -249,27 +251,24 @@ describe('App', () => {
     }
 
     const app = document.getElementById('app');
-    // With spread > 1, shape note contains the score spread message
     expect(app?.textContent).toContain('Ko ngā wāhi');
   });
 
   it('should render balanced score note in Māori when all scores are equal', () => {
     vi.mocked(loadLanguage).mockReturnValue('mi');
     vi.mocked(loadState).mockReturnValue({
-      domains: createDefaultDomains() // All scores = 3
+      domains: createDefaultDomains()
     });
 
     bootstrap();
 
     document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
-    // Start and go straight to summary
     for (let i = 0; i < 4; i++) {
       document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     }
 
     const app = document.getElementById('app');
-    // spread = 0, so should show scoreEven
     expect(app?.textContent).toContain('Ke tūpato ō tūtohi i runga i ngā ara e whā.');
   });
 
@@ -284,7 +283,6 @@ describe('App', () => {
 
     const app = document.getElementById('app');
     const html = app?.innerHTML || '';
-    // English UI strings should NOT appear in Māori mode (domain names are intentionally bilingual)
     expect(html).not.toContain('Begin reflection');
     expect(html).not.toContain('Your reflection');
     expect(html).not.toContain('Print or save as PDF');
@@ -304,10 +302,8 @@ describe('App', () => {
     }
 
     const app = document.getElementById('app');
-    // Both Māori and English names should appear in summary card headings
     expect(app?.innerHTML).toContain('Taha tinana');
     expect(app?.innerHTML).toContain('Physical wellbeing');
-    // Should not have a separate .summary-english paragraph
     expect(app?.innerHTML).not.toContain('summary-english');
   });
 
@@ -324,7 +320,6 @@ describe('App', () => {
     expect(miOption?.getAttribute('aria-checked')).toBe('true');
     expect(miOption?.classList.contains('selected')).toBe(true);
 
-    // Restore
     Object.defineProperty(navigator, 'language', {
       value: 'en-US',
       configurable: true
@@ -349,7 +344,6 @@ describe('App', () => {
 
     document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     const app = document.getElementById('app');
-    // Should show English description as fallback (no descriptionMi defined)
     expect(app?.textContent).toContain('English fallback description');
     expect(app?.textContent).toContain('English fallback prompt');
   });
@@ -505,7 +499,6 @@ describe('App', () => {
     }
 
     const app = document.getElementById('app');
-    // spread = 1, so should show scoreBalanced
     expect(app?.textContent).toContain('with only small differences between dimensions');
   });
 
@@ -592,5 +585,57 @@ describe('App', () => {
 
     createObjectURLSpy.mockRestore();
     revokeObjectURLSpy.mockRestore();
+  });
+
+  it('should not show export button when no data has been entered', () => {
+    bootstrap();
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).not.toContain('data-action="export"');
+  });
+
+  it('should call importState and re-render on valid import file', async () => {
+    const domains = [
+      { id: 'tinana', name: 'Physical', maoriName: 'Taha tinana', description: 'Desc', prompt: 'Prompt', score: 4, reflection: '' }
+    ];
+    const importStateSpy = vi.spyOn(await import('@src/storage'), 'importState').mockImplementation(() => {});
+
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const input = document.querySelector('[data-import-input]') as HTMLInputElement | null;
+    const file = new File([JSON.stringify({ domains })], 'assessment.json', { type: 'application/json' });
+    const fakeFileList = { length: 1, item: (i: number) => (i === 0 ? file : null), 0: file } as unknown as FileList;
+    Object.defineProperty(input!, 'files', { value: fakeFileList, writable: true, configurable: true });
+
+    nextFileReaderResult = JSON.stringify({ domains });
+    input?.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(importStateSpy).toHaveBeenCalledWith(domains);
+    importStateSpy.mockRestore();
+  });
+
+  it('should show error message on invalid import file', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const input = document.querySelector('[data-import-input]') as HTMLInputElement | null;
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const file = new File(['not json'], 'bad.json', { type: 'application/json' });
+    const fakeFileList = { length: 1, item: (i: number) => (i === 0 ? file : null), 0: file } as unknown as FileList;
+    Object.defineProperty(input!, 'files', { value: fakeFileList, writable: true, configurable: true });
+
+    nextFileReaderResult = 'not json';
+    input?.dispatchEvent(new Event('change', { bubbles: true }));
+
+    expect(alertSpy).toHaveBeenCalled();
+    alertSpy.mockRestore();
   });
 });
