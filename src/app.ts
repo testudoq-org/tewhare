@@ -223,52 +223,48 @@ class App {
     const subtitleEn = escapeHtml(t('lang.selectSubtitle', 'en'));
     const subtitleMi = escapeHtml(t('lang.selectSubtitle', 'mi'));
 
-    return '' +
-      '<section class="lang-selector" aria-labelledby="lang-select-title">' +
-        '<div class="lang-selector-content">' +
-          '<h1 id="lang-select-title">' +
-            '<span class="lang-mi">' + titleMi + '</span>' +
-            '<span class="lang-en">' + titleEn + '</span>' +
-          '</h1>' +
-          '<p class="lang-subtitle">' +
-            '<span class="lang-mi">' + subtitleMi + '</span>' +
-            '<span class="lang-en">' + subtitleEn + '</span>' +
-          '</p>' +
-          '<div class="lang-options" role="radiogroup" aria-label="' + escapeHtml(t('lang.selectTitle', this.language)) + '">' +
-            '<button type="button" class="lang-option' + isDetected('en') +
-              '" data-action="select-lang" data-lang="en"' +
-              ' aria-checked="' + (detected === 'en' ? 'true' : 'false') + '">' +
-              escapeHtml(t('lang.option.en', 'en')) +
-            '</button>' +
-            '<button type="button" class="lang-option' + isDetected('mi') +
-              '" data-action="select-lang" data-lang="mi"' +
-              ' aria-checked="' + (detected === 'mi' ? 'true' : 'false') + '">' +
-              escapeHtml(t('lang.option.mi', 'mi')) +
-            '</button>' +
-          '</div>' +
-        '</div>' +
-      '</section>';
+    return `
+      <section class="lang-selector" aria-labelledby="lang-select-title">
+        <div class="lang-selector-content">
+          <h1 id="lang-select-title">
+            <span class="lang-mi">${titleMi}</span>
+            <span class="lang-en">${titleEn}</span>
+          </h1>
+          <p class="lang-subtitle">
+            <span class="lang-mi">${subtitleMi}</span>
+            <span class="lang-en">${subtitleEn}</span>
+          </p>
+          <div class="lang-options" role="radiogroup" aria-label="${escapeHtml(t('lang.selectTitle', this.language))}">
+            <button type="button" class="lang-option${isDetected('en')}" data-action="select-lang" data-lang="en" aria-checked="${detected === 'en' ? 'true' : 'false'}">
+              ${escapeHtml(t('lang.option.en', 'en'))}
+            </button>
+            <button type="button" class="lang-option${isDetected('mi')}" data-action="select-lang" data-lang="mi" aria-checked="${detected === 'mi' ? 'true' : 'false'}">
+              ${escapeHtml(t('lang.option.mi', 'mi'))}
+            </button>
+          </div>
+        </div>
+      </section>`;
   }
 
   private renderWelcome(): string {
-    return '' +
-      '<section class="welcome" aria-labelledby="welcome-title">' +
-        '<div class="welcome-content">' +
-          '<h1 id="welcome-title">Te Whare Tapa Whā</h1>' +
-          '<p class="subtitle">' + escapeHtml(t('welcome.subtitle', this.language)) + '</p>' +
-          '<p class="intro">' + escapeHtml(t('welcome.intro1', this.language)) + '</p>' +
-          '<p class="intro">' + escapeHtml(t('welcome.intro2', this.language)) + '</p>' +
-          '<p class="note">' + escapeHtml(t('welcome.note', this.language)) + '</p>' +
-          '<button type="button" class="btn primary" data-action="start">' +
-            escapeHtml(t('welcome.startButton', this.language)) +
-          '</button>' +
-        '</div>' +
-      '</section>';
+    return `
+      <section class="welcome" aria-labelledby="welcome-title">
+        <div class="welcome-content">
+          <h1 id="welcome-title">Te Whare Tapa Whā</h1>
+          <p class="subtitle">${escapeHtml(t('welcome.subtitle', this.language))}</p>
+          <p class="intro">${escapeHtml(t('welcome.intro1', this.language))}</p>
+          <p class="intro">${escapeHtml(t('welcome.intro2', this.language))}</p>
+          <p class="note">${escapeHtml(t('welcome.note', this.language))}</p>
+          <button type="button" class="btn primary" data-action="start">
+            ${escapeHtml(t('welcome.startButton', this.language))}
+          </button>
+        </div>
+      </section>`;
   }
 
   private renderAssessment(): string {
     const domain = this.state.domains[this.state.currentStep - 1];
-    if (!domain) return "";
+    if (!domain) return '';
     const step = this.state.currentStep;
     const total = this.state.domains.length;
 
@@ -293,74 +289,73 @@ class App {
       ? escapeHtml(t('nav.seeSummary', this.language))
       : escapeHtml(t('nav.next', this.language));
 
-    return '' +
-      '<section class="assessment" aria-labelledby="domain-title">' +
-        '<header class="assessment-header">' +
-          '<div class="progress" role="progressbar" aria-valuenow="' + step + '" aria-valuemin="1" aria-valuemax="' + total + '" aria-label="' + progLabel + '">' +
-            '<span class="progress-text">' + stepOf + '</span>' +
-            '<div class="progress-bar">' +
-              '<div class="progress-fill" style="width: ' + ((step / total) * 100) + '%"></div>' +
-            '</div>' +
-          '</div>' +
-          '<button type="button" class="btn text" data-action="reset">' + startOver + '</button>' +
-        '</header>' +
+    return `
+      <section class="assessment" aria-labelledby="domain-title">
+        <header class="assessment-header">
+          <div class="progress" role="progressbar" aria-valuenow="${step}" aria-valuemin="1" aria-valuemax="${total}" aria-label="${progLabel}">
+            <span class="progress-text">${stepOf}</span>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${((step / total) * 100)}%"></div>
+            </div>
+          </div>
+          <button type="button" class="btn text" data-action="reset">${startOver}</button>
+        </header>
 
-        '<div class="assessment-body">' +
-          '<div class="domain-panel">' +
-            '<h2 id="domain-title">' +
-              '<span class="maori">' + escapeHtml(domain.maoriName) + '</span>' +
-              '<span class="english">' + escapeHtml(domain.name) + '</span>' +
-            '</h2>' +
-            '<p class="domain-desc">' + desc + '</p>' +
+        <div class="assessment-body">
+          <div class="domain-panel">
+            <h2 id="domain-title">
+              <span class="maori">${escapeHtml(domain.maoriName)}</span>
+              <span class="english">${escapeHtml(domain.name)}</span>
+            </h2>
+            <p class="domain-desc">${desc}</p>
 
-            '<div class="score-control">' +
-              '<label for="score-' + domain.id + '">' +
-                scoreLabel +
-                ' <span class="score-value" data-score-value="' + domain.id + '">' + domain.score + '</span>' + scoreFormat +
-              '</label>' +
-              '<input' +
-                ' type="range"' +
-                ' id="score-' + domain.id + '"' +
-                ' min="1"' +
-                ' max="5"' +
-                ' step="1"' +
-                ' value="' + domain.score + '"' +
-                ' data-score="' + domain.id + '"' +
-                ' aria-valuemin="1"' +
-                ' aria-valuemax="5"' +
-                ' aria-valuenow="' + domain.score + '"' +
-                ' aria-label="' + scoreAria + '"' +
-              ' />' +
-              '<div class="score-labels" aria-hidden="true">' +
-                '<span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>' +
-              '</div>' +
-            '</div>' +
+            <div class="score-control">
+              <label for="score-${domain.id}">
+                ${scoreLabel} <span class="score-value" data-score-value="${domain.id}">${domain.score}</span>${scoreFormat}
+              </label>
+              <input
+                type="range"
+                id="score-${domain.id}"
+                min="1"
+                max="5"
+                step="1"
+                value="${domain.score}"
+                data-score="${domain.id}"
+                aria-valuemin="1"
+                aria-valuemax="5"
+                aria-valuenow="${domain.score}"
+                aria-label="${scoreAria}"
+              />
+              <div class="score-labels" aria-hidden="true">
+                <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+              </div>
+            </div>
 
-            '<div class="reflection-control">' +
-              '<label for="reflection-' + domain.id + '">' + prompt + '</label>' +
-              '<textarea' +
-                ' id="reflection-' + domain.id + '"' +
-                ' data-reflection="' + domain.id + '"' +
-                ' rows="4"' +
-                ' placeholder="' + placeholder + '"' +
-              '>' + escapeHtml(domain.reflection) + '</textarea>' +
-            '</div>' +
-          '</div>' +
+            <div class="reflection-control">
+              <label for="reflection-${domain.id}">${prompt}</label>
+              <textarea
+                id="reflection-${domain.id}"
+                data-reflection="${domain.id}"
+                rows="4"
+                placeholder="${placeholder}"
+              >${escapeHtml(domain.reflection)}</textarea>
+            </div>
+          </div>
 
-          '<div class="chart-panel">' +
-            '<h3 class="chart-title">' + chartTitle + '</h3>' +
-            '<div class="chart-container" id="live-chart" role="img" aria-label="' + liveAria + '"></div>' +
-            '<p class="chart-note">' + chartNote + '</p>' +
-          '</div>' +
-        '</div>' +
+          <div class="chart-panel">
+            <h3 class="chart-title">${chartTitle}</h3>
+            <div class="chart-container" id="live-chart" role="img" aria-label="${liveAria}"></div>
+            <p class="chart-note">${chartNote}</p>
+          </div>
+        </div>
 
-        '<nav class="assessment-nav">' +
-          '<button type="button" class="btn secondary" data-action="prev" ' + (step === 1 ? 'disabled' : '') + '>' + backBtn + '</button>' +
-          '<button type="button" class="btn primary" data-action="next">' +
-            nextBtn +
-          '</button>' +
-        '</nav>' +
-      '</section>';
+        <nav class="assessment-nav">
+          <button type="button" class="btn secondary" data-action="prev" ${step === 1 ? 'disabled' : ''}>${backBtn}</button>
+          <button type="button" class="btn primary" data-action="next">
+            ${nextBtn}
+          </button>
+        </nav>
+      </section>`;
   }
 
   private renderSummary(): string {
@@ -406,50 +401,50 @@ class App {
     );
     const summaryAria = escapeHtml(t('chart.summaryAriaLabel', this.language));
 
-    const domainCards = domains.map((d) =>
-      '<article class="summary-card">' +
-        '<h3>' +
-          '<span class="domain-names">' +
-            '<span class="maori">' + escapeHtml(d.maoriName) + '</span>' +
-            '<span class="english">' + escapeHtml(d.name) + '</span>' +
-          '</span>' +
-          '<span class="score-badge">' + d.score + scoreFormat + '</span>' +
-        '</h3>' +
-        (d.reflection
-          ? '<p class="summary-note">"' + escapeHtml(d.reflection) + '"</p>'
-          : '<p class="summary-note muted">' + noNotes + '</p>') +
-        '<button type="button" class="btn text small" data-action="edit" data-domain="' + d.id + '">' + editBtn + '</button>' +
-      '</article>'
-    ).join('');
+    const domainCards = domains.map((d) => `
+      <article class="summary-card">
+        <h3>
+          <span class="domain-names">
+            <span class="maori">${escapeHtml(d.maoriName)}</span>
+            <span class="english">${escapeHtml(d.name)}</span>
+          </span>
+          <span class="score-badge">${d.score}${scoreFormat}</span>
+        </h3>
+        ${d.reflection
+          ? `<p class="summary-note">"${escapeHtml(d.reflection)}"</p>`
+          : `<p class="summary-note muted">${noNotes}</p>`}
+        <button type="button" class="btn text small" data-action="edit" data-domain="${d.id}">${editBtn}</button>
+      </article>
+    `).join('');
 
-    return '' +
-      '<section class="summary" aria-labelledby="summary-title">' +
-        '<header class="summary-header">' +
-          '<h1 id="summary-title">' + title + '</h1>' +
-          '<p class="subtitle">' + subtitle + '</p>' +
-        '</header>' +
+    return `
+      <section class="summary" aria-labelledby="summary-title">
+        <header class="summary-header">
+          <h1 id="summary-title">${title}</h1>
+          <p class="subtitle">${subtitle}</p>
+        </header>
 
-        '<div class="summary-body">' +
-          '<div class="chart-panel large">' +
-            '<div class="chart-container" id="summary-chart" role="img" aria-label="' + summaryAria + '"></div>' +
-            '<p class="shape-note">' + shapeNote + '</p>' +
-            '<p class="avg-note">' + avgNote + '</p>' +
-          '</div>' +
+        <div class="summary-body">
+          <div class="chart-panel large">
+            <div class="chart-container" id="summary-chart" role="img" aria-label="${summaryAria}"></div>
+            <p class="shape-note">${shapeNote}</p>
+            <p class="avg-note">${avgNote}</p>
+          </div>
 
-          '<div class="summary-cards">' +
-            domainCards +
-          '</div>' +
-        '</div>' +
+          <div class="summary-cards">
+            ${domainCards}
+          </div>
+        </div>
 
-        '<div class="summary-footer">' +
-          '<p class="disclaimer">' + disclaimer + '</p>' +
-          '<div class="summary-actions">' +
-            '<button type="button" class="btn secondary" data-action="prev">' + backToEdit + '</button>' +
-            '<button type="button" class="btn primary" data-action="print">' + printBtn + '</button>' +
-            '<button type="button" class="btn text" data-action="reset">' + startNew + '</button>' +
-          '</div>' +
-        '</div>' +
-      '</section>';
+        <div class="summary-footer">
+          <p class="disclaimer">${disclaimer}</p>
+          <div class="summary-actions">
+            <button type="button" class="btn secondary" data-action="prev">${backToEdit}</button>
+            <button type="button" class="btn primary" data-action="print">${printBtn}</button>
+            <button type="button" class="btn text" data-action="reset">${startNew}</button>
+          </div>
+        </div>
+      </section>`;
   }
 }
 
