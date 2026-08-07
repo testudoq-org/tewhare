@@ -2,7 +2,7 @@
 // Unit tests for storage persistence
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { loadState, saveState, clearState } from '@src/storage';
+import { loadState, saveState, clearState, loadLanguage, saveLanguage } from '@src/storage';
 import type { Domain } from '@src/types';
 
 const createDomain = (overrides: Partial<Domain> = {}): Domain => ({
@@ -73,4 +73,67 @@ describe('Storage', () => {
   });
 });
 
+describe('Language Storage', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(),
+      setItem: vi.fn(),
+      removeItem: vi.fn()
+    });
+  });
 
+  it('should return null when no language is saved', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue(null);
+    expect(loadLanguage()).toBeNull();
+  });
+
+  it('should return "en" when English is saved', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('en');
+    expect(loadLanguage()).toBe('en');
+  });
+
+  it('should return "mi" when Māori is saved', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('mi');
+    expect(loadLanguage()).toBe('mi');
+  });
+
+  it('should return null for invalid stored language', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('fr');
+    expect(loadLanguage()).toBeNull();
+  });
+
+  it('should return null for empty string in storage', () => {
+    vi.mocked(localStorage.getItem).mockReturnValue('');
+    expect(loadLanguage()).toBeNull();
+  });
+
+  it('should save language to localStorage', () => {
+    saveLanguage('mi');
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'te-whare-tapa-wha-language',
+      'mi'
+    );
+  });
+
+  it('should save English to localStorage', () => {
+    saveLanguage('en');
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'te-whare-tapa-wha-language',
+      'en'
+    );
+  });
+
+  it('should handle loadLanguage errors gracefully', () => {
+    vi.mocked(localStorage.getItem).mockImplementation(() => {
+      throw new Error('Storage disabled');
+    });
+    expect(loadLanguage()).toBeNull();
+  });
+
+  it('should handle saveLanguage errors gracefully', () => {
+    vi.mocked(localStorage.setItem).mockImplementation(() => {
+      throw new Error('Storage disabled');
+    });
+    expect(() => saveLanguage('mi')).not.toThrow();
+  });
+});
