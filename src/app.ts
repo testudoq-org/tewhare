@@ -174,17 +174,6 @@ class App {
         return;
       }
 
-      if (target.matches('.chart-dot')) {
-        const domainId = target.getAttribute('data-domain');
-        if (domainId && this.state.currentStep > 0 && !this.state.showSummary) {
-          const domain = this.state.domains[this.state.currentStep - 1];
-          if (domain && domain.id === domainId) {
-            this.startDotDrag(e, domainId);
-          }
-        }
-        return;
-      }
-
       if (target.matches('[data-action="import"]')) {
         const input = document.querySelector('[data-import-input]') as HTMLInputElement | null;
         input?.click();
@@ -205,6 +194,50 @@ class App {
         }
       }
     });
+
+    document.addEventListener('mousedown', (e) => {
+      const target = e.target as HTMLElement;
+
+      if (target.matches('.chart-dot')) {
+        const domainId = target.getAttribute('data-domain');
+        if (domainId && this.state.currentStep > 0 && !this.state.showSummary) {
+          const domain = this.state.domains[this.state.currentStep - 1];
+          if (domain && domain.id === domainId) {
+            this.startDotDrag(e as MouseEvent, domainId);
+          }
+        }
+        return;
+      }
+
+      if (target.matches('.chart-data')) {
+        if (this.state.currentStep > 0 && !this.state.showSummary) {
+          this.startChartDrag(e as MouseEvent);
+        }
+        return;
+      }
+    });
+
+    document.addEventListener('touchstart', (e) => {
+      const target = e.target as HTMLElement;
+
+      if (target.matches('.chart-dot')) {
+        const domainId = target.getAttribute('data-domain');
+        if (domainId && this.state.currentStep > 0 && !this.state.showSummary) {
+          const domain = this.state.domains[this.state.currentStep - 1];
+          if (domain && domain.id === domainId) {
+            this.startDotDrag(e as TouchEvent, domainId);
+          }
+        }
+        return;
+      }
+
+      if (target.matches('.chart-data')) {
+        if (this.state.currentStep > 0 && !this.state.showSummary) {
+          this.startChartDrag(e as TouchEvent);
+        }
+        return;
+      }
+    }, { passive: false });
 
     document.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement | HTMLTextAreaElement;
@@ -271,7 +304,25 @@ class App {
     if (el) el.textContent = String(score);
   }
 
-  private startDotDrag(e: MouseEvent | Touch, domainId: string): void {
+  private updateSlider(id: string, score: number): void {
+    const slider = document.querySelector(`input[type="range"][data-score="${id}"]`) as HTMLInputElement | null;
+    if (slider) {
+      slider.value = String(score);
+      slider.setAttribute('aria-valuenow', String(score));
+    }
+  }
+
+  private addDragClass(): void {
+    const svg = document.querySelector('.radar-svg');
+    if (svg) svg.classList.add('chart-dragging');
+  }
+
+  private removeDragClass(): void {
+    const svg = document.querySelector('.radar-svg');
+    if (svg) svg.classList.remove('chart-dragging');
+  }
+
+  private startDotDrag(e: MouseEvent | TouchEvent, domainId: string): void {
     const svg = document.querySelector('.radar-svg') as SVGSVGElement | null;
     if (!svg) return;
 
@@ -286,6 +337,27 @@ class App {
     const domainIndex = this.state.domains.findIndex((d) => d.id === domainId);
     if (domainIndex < 0) return;
 
+    const clientX = 'touches' in e ? (e as TouchEvent).touches[0]!.clientX : e.clientX;
+    const clientY = 'touches' in e ? (e as TouchEvent).touches[0]!.clientY : e.clientY;
+
+    const svgX = ((clientX - rect.left) / (rect.width ?? size)) * size;
+    const svgY = ((clientY - rect.top) / (rect.height ?? size)) * size;
+
+    const dx = svgX - center;
+    const dy = svgY - center;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const clampedDistance = Math.max(0, Math.min(distance, maxRadius));
+    const newScore = Math.max(1, Math.min(5, Math.round((clampedDistance / maxRadius) * 5)));
+
+    if (newScore !== domain.score) {
+      domain.score = newScore;
+      saveState(this.state.domains);
+      this.updateChart();
+      this.updateScoreDisplay(domainId, newScore);
+      this.updateSlider(domainId, newScore);
+    }
+
+    this.addDragClass();
 
     const moveHandler = (moveEvent: MouseEvent | TouchEvent) => {
       moveEvent.preventDefault();
@@ -306,10 +378,110 @@ class App {
         saveState(this.state.domains);
         this.updateChart();
         this.updateScoreDisplay(domainId, newScore);
+        this.updateSlider(domainId, newScore);
       }
     };
 
     const upHandler = () => {
+      this.removeDragClass();
+      document.removeEventListener('mousemove', moveHandler);
+      document.removeEventListener('mouseup', upHandler);
+      document.removeEventListener('touchmove', moveHandler);
+      document.removeEventListener('touchend', upHandler);
+    };
+
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+    document.addEventListener('touchmove', moveHandler, { passive: false });
+    document.addEventListener('touchend', upHandler);
+  }
+
+  private startChartDrag(e: MouseEvent | TouchEvent): void {
+    const svg = document.querySelector('.radar-svg') as SVGSVGElement | null;
+    if (!svg) return;
+
+    const rect = svg.getBoundingClientRect();
+    const size = 280;
+    const center = size / 2;
+    const maxRadius = 110;
+    const domains = this.state.domains;
+    const currentStep = this.state.currentStep;
+    if (currentStep <= 0 || this.state.showSummary) return;
+
+    const domain = domains[currentStep - 1];
+    if (!domain) return;
+
+    const clientX = 'touches' in e ? (e as TouchEvent).touches[0]!.clientX : e.clientX;
+    const clientY = 'touches' in e ? (e as TouchEvent).touches[0]!.clientY : e.clientY;
+
+    console.log('startChartDrag', clientX, clientY, 'rect:', rect.left, rect.top, rect.width, rect.height);
+
+    const svgX = ((clientX - rect.left) / (rect.width ?? size)) * size;
+    const svgY = ((clientY - rect.top) / (rect.height ?? size)) * size;
+
+    const dx = svgX - center;
+    const dy = svgY - center;
+    const angle = Math.atan2(dy, dx);
+
+    const n = domains.length;
+    const angleStep = (Math.PI * 2) / n;
+    const startAngle = -Math.PI / 2;
+
+    let closestDomainIndex = 0;
+    let closestAngleDiff = Infinity;
+
+    for (let i = 0; i < n; i++) {
+      const domainAngle = startAngle + i * angleStep;
+      let diff = Math.abs(angle - domainAngle);
+      if (diff > Math.PI) diff = 2 * Math.PI - diff;
+      if (diff < closestAngleDiff) {
+        closestAngleDiff = diff;
+        closestDomainIndex = i;
+      }
+    }
+
+    const targetDomain = domains[closestDomainIndex]!;
+    const targetDomainId = targetDomain.id;
+
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const clampedDistance = Math.max(0, Math.min(distance, maxRadius));
+    const initialScore = Math.max(1, Math.min(5, Math.round((clampedDistance / maxRadius) * 5)));
+
+    if (initialScore !== targetDomain.score) {
+      targetDomain.score = initialScore;
+      saveState(this.state.domains);
+      this.updateChart();
+      this.updateScoreDisplay(targetDomainId, initialScore);
+      this.updateSlider(targetDomainId, initialScore);
+    }
+
+    this.addDragClass();
+
+    const moveHandler = (moveEvent: MouseEvent | TouchEvent) => {
+      moveEvent.preventDefault();
+      const moveClientX = 'touches' in moveEvent ? (moveEvent as unknown as TouchEvent).touches[0]!.clientX : moveEvent.clientX;
+      const moveClientY = 'touches' in moveEvent ? (moveEvent as unknown as TouchEvent).touches[0]!.clientY : moveEvent.clientY;
+
+      const svgX = ((moveClientX - rect.left) / (rect.width ?? size)) * size;
+      const svgY = ((moveClientY - rect.top) / (rect.height ?? size)) * size;
+
+      const dx = svgX - center;
+      const dy = svgY - center;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const clampedDistance = Math.max(0, Math.min(distance, maxRadius));
+    const newScore = Math.max(1, Math.min(5, Math.round((clampedDistance / maxRadius) * 5)));
+
+    if (newScore !== targetDomain.score) {
+      targetDomain.score = newScore;
+      saveState(this.state.domains);
+      this.updateChart();
+      this.updateScoreDisplay(targetDomainId, newScore);
+      this.updateSlider(targetDomainId, newScore);
+    }
+    };
+
+    const upHandler = () => {
+      this.removeDragClass();
       document.removeEventListener('mousemove', moveHandler);
       document.removeEventListener('mouseup', upHandler);
       document.removeEventListener('touchmove', moveHandler);

@@ -559,6 +559,29 @@ input[type="range"]:focus {
   cursor: grabbing;
 }
 
+/* Chart data polygon drag styles */
+.chart-data {
+  cursor: grab;
+  touch-action: none;
+  transition: fill 0.15s, stroke 0.15s, stroke-width 0.15s;
+}
+
+.chart-data:active {
+  cursor: grabbing;
+}
+
+.chart-dragging .chart-data {
+  fill: rgba(44, 95, 74, 0.35);
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+
+.chart-dragging .chart-dot {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 3;
+}
+
 /* Chart value-level polygon interaction */
 .chart-value-level-polygons polygon {
   cursor: pointer;

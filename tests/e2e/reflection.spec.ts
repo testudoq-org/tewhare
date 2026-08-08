@@ -186,6 +186,85 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     }
   });
 
+  test('should sync slider when chart data polygon is dragged during assessment', async ({ page }) => {
+    await page.click('button[data-action="start"]');
+
+    const slider = page.locator('input[type="range"]');
+    await slider.fill('3');
+    await expect(page.locator('[data-score-value="tinana"]')).toHaveText('3');
+
+    const chartContainer = page.locator('#live-chart');
+    await expect(chartContainer).toBeVisible();
+
+    const chartBox = await chartContainer.boundingBox();
+    if (chartBox) {
+      // Click near the top-center of the chart (score 5 for the first domain)
+      const startX = Math.round(chartBox.x + chartBox.width * 0.5);
+      const startY = Math.round(chartBox.y + 10);
+      const endX = startX;
+      const endY = startY;
+
+      await page.evaluate(
+        ({ startX, startY, endX, endY }) => {
+          const polygon = document.querySelector('#live-chart .chart-data');
+          if (!polygon) return;
+
+          const mousedown = new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: startX, clientY: startY });
+          const mousemove = new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: endX, clientY: endY });
+          const mouseup = new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: endX, clientY: endY });
+
+          polygon.dispatchEvent(mousedown);
+          document.dispatchEvent(mousemove);
+          document.dispatchEvent(mouseup);
+        },
+        { startX, startY, endX, endY }
+      );
+
+      await expect(slider).toHaveValue('5');
+    }
+  });
+
+  test('should sync both slider and polygon bidirectionally during assessment', async ({ page }) => {
+    await page.click('button[data-action="start"]');
+
+    const slider = page.locator('input[type="range"]');
+    const scoreValue = page.locator('[data-score-value="tinana"]');
+
+    // Direction 1: slider -> polygon
+    await slider.fill('4');
+    await expect(scoreValue).toHaveText('4');
+    await expect(page.locator('#live-chart svg')).toBeVisible();
+
+    // Direction 2: polygon -> slider
+    const chartContainer = page.locator('#live-chart');
+    const chartBox = await chartContainer.boundingBox();
+    if (chartBox) {
+      const startX = Math.round(chartBox.x + chartBox.width * 0.5);
+      const startY = Math.round(chartBox.y + 10);
+      const endX = startX;
+      const endY = startY;
+
+      await page.evaluate(
+        ({ startX, startY, endX, endY }) => {
+          const polygon = document.querySelector('#live-chart .chart-data');
+          if (!polygon) return;
+
+          const mousedown = new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: startX, clientY: startY });
+          const mousemove = new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: endX, clientY: endY });
+          const mouseup = new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX: endX, clientY: endY });
+
+          polygon.dispatchEvent(mousedown);
+          document.dispatchEvent(mousemove);
+          document.dispatchEvent(mouseup);
+        },
+        { startX, startY, endX, endY }
+      );
+
+      await expect(slider).toHaveValue('5');
+      await expect(scoreValue).toHaveText('5');
+    }
+  });
+
   test('should render background SVG layer in live chart', async ({ page }) => {
     await page.click('button[data-action="start"]');
 

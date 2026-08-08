@@ -26,6 +26,7 @@
     "vite": "^6.0.0"
   },
   "devDependencies": {
+    "@cyclonedx/cyclonedx-npm": "^6.0.0",
     "@playwright/test": "^1.49.0",
     "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.66.0",

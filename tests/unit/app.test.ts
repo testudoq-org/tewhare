@@ -742,6 +742,68 @@ describe('App', () => {
     polygon?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(vi.mocked(saveState).mock.calls.length).toBe(callCountBefore);
   });
+
+  it('should update slider when chart dot is dragged during assessment', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const slider = document.querySelector('input[type="range"]') as HTMLInputElement | null;
+    if (slider) {
+      slider.value = '3';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    const liveChart = document.getElementById('live-chart');
+    if (liveChart) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.classList.add('radar-svg');
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('data-domain', 'tinana');
+      circle.classList.add('chart-dot');
+      svg.appendChild(circle);
+      liveChart.appendChild(svg);
+    }
+
+    const dot = document.querySelector('.chart-dot[data-domain="tinana"]');
+    dot?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 200, clientY: 50 }));
+
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 50 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+    const updatedSlider = document.querySelector('input[type="range"]') as HTMLInputElement | null;
+    expect(updatedSlider?.value).toBe('5');
+  });
+
+  it('should update slider when chart data polygon is dragged during assessment', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const slider = document.querySelector('input[type="range"]') as HTMLInputElement | null;
+    if (slider) {
+      slider.value = '3';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    const liveChart = document.getElementById('live-chart');
+    if (liveChart) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.classList.add('radar-svg');
+      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      polygon.classList.add('chart-data');
+      polygon.setAttribute('points', '140,50 200,100 200,180 140,230 80,180 80,100');
+      svg.appendChild(polygon);
+      liveChart.appendChild(svg);
+    }
+
+    const dataPolygon = document.querySelector('.chart-data');
+    dataPolygon?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 140, clientY: 50 }));
+
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 140, clientY: 20 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+    const updatedSlider = document.querySelector('input[type="range"]') as HTMLInputElement | null;
+    expect(updatedSlider?.value).toBe('5');
+  });
 });
 
 

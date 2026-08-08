@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SBOM Viewer</title>
+  <style>
+    :root {
+      --bg: #f7f5f2;
+      --surface: #ffffff;
+      --ink: #1a1a1a;
+      --ink-muted: #4a4a4a;
+      --accent: #2c5f4a;
+      --accent-soft: #e8f0ec;
+      --border: #d9d4cc;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+      --font: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --max-width: 960px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    #app {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      padding-bottom: max(3rem, env(safe-area-inset-bottom));
+    }
+
+    .welcome-content {
+      background: var(--surface);
+      padding: 2.5rem 2rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      max-width: 560px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 1.5rem;
+      font-size: 1.75rem;
+      color: var(--accent);
+    }
+
+    .error {
+      color: #c41e3a;
+      background: #fce8ea;
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+
+    .meta {
+      text-align: left;
+      background: var(--surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+    }
+
+    .meta dt {
+      font-weight: 600;
+      color: var(--ink-muted);
+      margin-top: 0.75rem;
+    }
+
+    .meta dd {
+      margin: 0.25rem 0 0;
+    }
+
+    .components {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .component {
+      background: var(--surface);
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      text-align: left;
+    }
+
+    .component h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+
+    .component p {
+      margin: 0.25rem 0;
+      color: var(--ink-muted);
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+
+    a {
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <main id="app" role="main">
+    <div class="welcome-content">
+      <h1>SBOM Viewer</h1>
+      <div id="status">Loading SBOM...</div>
+    </div>
+  </main>
+
+  <script>
+    const status = document.getElementById('status');
+
+    fetch('sbom.json')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to load sbom.json (HTTP ' + response.status + ')');
+        }
+        return response.json();
+      })
+      .then((bom) => {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+
+        const title = document.createElement('h1');
+        title.textContent = 'SBOM Viewer';
+        app.appendChild(title);
+
+        const meta = document.createElement('dl');
+        meta.className = 'meta';
+
+        const addMeta = (label, value) => {
+          const dt = document.createElement('dt');
+          dt.textContent = label;
+          const dd = document.createElement('dd');
+          dd.textContent = value ?? 'N/A';
+          meta.appendChild(dt);
+          meta.appendChild(dd);
+        };
+
+        addMeta('BOM Format', bom.bomFormat);
+        addMeta('Spec Version', bom.specVersion);
+        addMeta('Version', bom.version);
+        addMeta('Main Component', bom.metadata?.component?.name || bom.name || 'N/A');
+        addMeta('Main Component Version', bom.metadata?.component?.version || bom.version || 'N/A');
+
+        if (bom.metadata?.component?.description) {
+          addMeta('Description', bom.metadata.component.description);
+        }
+
+        if (bom.metadata?.tools?.components?.length) {
+          const tools = bom.metadata.tools.components.map((tool) => `${tool.name} ${tool.version || ''}`).join(', ');
+          addMeta('Tools', tools);
+        }
+
+        app.appendChild(meta);
+
+        const components = bom.components || [];
+        const heading = document.createElement('h2');
+        heading.textContent = 'Components (' + components.length + ')';
+        app.appendChild(heading);
+
+        const grid = document.createElement('div');
+        grid.className = 'components';
+
+        components.forEach((component) => {
+          const card = document.createElement('div');
+          card.className = 'component';
+
+          const name = document.createElement('h2');
+          name.textContent = component.name + (component.version ? ' ' + component.version : '');
+          card.appendChild(name);
+
+          if (component.description) {
+            const desc = document.createElement('p');
+            desc.textContent = component.description;
+            card.appendChild(desc);
+          }
+
+          if (component.purl) {
+            const purl = document.createElement('p');
+            purl.textContent = 'Package URL: ' + component.purl;
+            card.appendChild(purl);
+          }
+
+          if (component.licenses?.length) {
+            const licenses = component.licenses.map((license) => license.license?.id || license.license?.name || 'Unknown').join(', ');
+            const licenseEl = document.createElement('p');
+            licenseEl.textContent = 'Licenses: ' + licenses;
+            card.appendChild(licenseEl);
+          }
+
+          if (component.copyright) {
+            const copyright = document.createElement('p');
+            copyright.textContent = 'Copyright: ' + component.copyright;
+            card.appendChild(copyright);
+          }
+
+          const typeBadge = document.createElement('span');
+          typeBadge.className = 'badge';
+          typeBadge.textContent = component.type || 'library';
+          card.appendChild(typeBadge);
+
+          grid.appendChild(card);
+        });
+
+        app.appendChild(grid);
+      })
+      .catch((error) => {
+        console.error(error);
+        status.innerHTML = '<div class="error">' + escapeHtml(error.message || String(error)) + '</div>';
+      });
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
