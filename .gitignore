@@ -11,3 +11,7 @@ Thumbs.db
 *.tsbuildinfo
 playwright-report/index.html
 .playwright-mcp/
+
+playwright-report/data/
+test-results/
+test-results/.last-run.json

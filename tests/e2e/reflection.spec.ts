@@ -12,6 +12,25 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await page.reload();
   });
 
+  test('should expand chart to fullscreen and close', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+
+    await page.click('button[data-action="select-lang"][data-lang="en"]');
+    await page.click('button[data-action="start"]');
+
+    for (let i = 0; i < 4; i++) {
+      await page.click('button[data-action="next"]');
+    }
+
+    await page.click('button[data-action="chart-expand"]');
+    await expect(page.locator('#fullscreen-chart-title')).toBeVisible();
+
+    await page.click('button[data-action="chart-close"]');
+    await expect(page.locator('#summary-title')).toBeVisible();
+  });
+
   test('should display welcome screen', async ({ page }) => {
     await expect(page.locator('#welcome-title')).toHaveText('Te Whare Tapa Whā');
     await expect(page.locator('[data-action="start"]')).toBeVisible();
@@ -35,7 +54,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
       );
 
       if (i < domains.length - 1) {
-        await page.click('[data-action="next"]');
+        await page.click('button[data-action="next"]');
       }
     }
   });
@@ -44,7 +63,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await page.click('[data-action="start"]');
 
     for (let i = 0; i < 4; i++) {
-      await page.click('[data-action="next"]');
+      await page.click('button[data-action="next"]');
     }
 
     await expect(page.locator('#summary-title')).toHaveText('Your reflection');
@@ -74,27 +93,27 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
   test('should allow navigation back and forth', async ({ page }) => {
     await page.click('[data-action="start"]');
-    await page.click('[data-action="next"]');
+    await page.click('button[data-action="next"]');
     await expect(page.locator('#domain-title')).toContainText('Taha hinengaro');
 
-    await page.click('[data-action="prev"]');
+    await page.click('button[data-action="prev"]');
     await expect(page.locator('#domain-title')).toContainText('Taha tinana');
   });
 
   test('should allow editing from summary', async ({ page }) => {
     await page.click('[data-action="start"]');
     for (let i = 0; i < 4; i++) {
-      await page.click('[data-action="next"]');
+      await page.click('button[data-action="next"]');
     }
 
-    await page.click('[data-action="edit"]');
+    await page.click('button[data-action="edit"]');
     await expect(page.locator('.assessment')).toBeVisible();
   });
 
   test('should print summary', async ({ page }) => {
     await page.click('[data-action="start"]');
     for (let i = 0; i < 4; i++) {
-      await page.click('[data-action="next"]');
+      await page.click('button[data-action="next"]');
     }
 
     await page.evaluate(() => {
@@ -106,7 +125,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
       };
     });
 
-    await page.click('[data-action="print"]');
+    await page.click('button[data-action="print"]');
 
     const printCalled = await page.evaluate(() => (window as Window & { __printCalled?: boolean }).__printCalled);
     expect(printCalled).toBe(true);
@@ -117,22 +136,22 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
       await dialog.accept();
     });
 
-    await page.click('[data-action="start"]');
-    await page.click('[data-action="reset"]');
+    await page.click('button[data-action="start"]');
+    await page.click('button[data-action="reset"]');
 
     await expect(page.locator('#welcome-title')).toHaveText('Te Whare Tapa Whā');
   });
 
   test('should be responsive on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
 
     await expect(page.locator('.assessment-body')).toBeVisible();
     await expect(page.locator('#live-chart')).toBeVisible();
   });
 
   test('should render value-level polygons in live chart', async ({ page }) => {
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
 
     const chart = page.locator('#live-chart');
     await expect(chart).toBeVisible();
@@ -151,7 +170,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
   });
 
   test('should render background SVG layer in live chart', async ({ page }) => {
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
 
     await expect(page.locator('#live-chart svg')).toBeVisible();
 
@@ -163,9 +182,9 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
   });
 
   test('should render polygon overlay in summary chart', async ({ page }) => {
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
     for (let i = 0; i < 4; i++) {
-      await page.click('[data-action="next"]');
+      await page.click('button[data-action="next"]');
     }
 
     await expect(page.locator('#summary-chart svg')).toBeVisible();
@@ -177,7 +196,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
   });
 
   test('should preserve chart interactivity after refactor', async ({ page }) => {
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
 
     const slider = page.locator('input[type="range"]');
     await slider.fill('5');
@@ -190,12 +209,12 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
   });
 
   test('should export assessment data as downloadable file', async ({ page }) => {
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
     const slider = page.locator('input[type="range"]');
     await slider.fill('4');
     await slider.dispatchEvent('input');
     for (let i = 0; i < 4; i++) {
-      await page.click('[data-action="next"]');
+      await page.click('button[data-action="next"]');
     }
 
     await page.click('button[data-action="export"]');
@@ -209,9 +228,9 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
   });
 
   test('should import assessment data from file and restore scores', async ({ page }) => {
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
     for (let i = 0; i < 4; i++) {
-      await page.click('[data-action="next"]');
+      await page.click('button[data-action="next"]');
     }
 
     const assessmentData = {
@@ -225,7 +244,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      page.click('[data-action="import"]')
+      page.click('button[data-action="import"]')
     ]);
 
     await fileChooser.setFiles({
@@ -236,7 +255,7 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     await page.waitForTimeout(500);
 
-    await page.click('[data-action="start"]');
+    await page.click('button[data-action="start"]');
 
     const app = page.locator('#app');
     await expect(app).toContainText('Physical wellbeing');

@@ -40,7 +40,7 @@ const buildValueLevelPolygons = (size: number, domains: readonly Domain[]): stri
       const y = center + r * Math.sin(angle);
       pts.push(`${x.toFixed(2)},${y.toFixed(2)}`);
     }
-    polygons.push(`<polygon points="${pts.join(' ')}" fill="none" stroke="${stroke}" stroke-width="1" opacity="0.35"/>`);
+    polygons.push(`<polygon points="${pts.join(' ')}" fill="none" stroke="${stroke}" stroke-width="1" opacity="0.35" data-chart-level="${level}" style="pointer-events: auto;" />`);
   }
   return polygons.join('');
 };
@@ -93,7 +93,7 @@ export const drawChart = (containerId: string, domains: readonly Domain[]): void
   const dataPolygon = `<polygon points="${dataPts}" class="chart-data" />`;
 
   // Data points
-  const dots = points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="5" class="chart-dot" />`).join('');
+  const dots = points.map((p) => `<circle cx="${p.x}" cy="${p.y}" r="8" class="chart-dot" data-domain="${p.domain.id}" />`).join('');
 
   // Labels
   const labels = points.map((p) => {

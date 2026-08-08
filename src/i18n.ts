@@ -62,6 +62,7 @@ const translations = {
     // Chart
     'chart.liveAriaLabel': 'Radar chart showing current wellbeing scores',
     'chart.summaryAriaLabel': 'Radar chart of your wellbeing scores',
+    'chart.fullscreenTitle': 'Assessment chart',
 
     // Navigation
     'nav.back': 'Back',
@@ -147,6 +148,7 @@ const translations = {
     // Chart
     'chart.liveAriaLabel': 'Kahikātea radar e whaguanitia ana i ngā tūtohi hauora o ināianei',
     'chart.summaryAriaLabel': 'Kahikātea radar o āu tūtohi hauora',
+    'chart.fullscreenTitle': 'Tūtohi aromātakitanga',
 
     // Navigation
     'nav.back': 'Hoki',

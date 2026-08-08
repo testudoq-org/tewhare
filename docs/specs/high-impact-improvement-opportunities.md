@@ -476,3 +476,193 @@ These are additive -- existing keys (`export.download`, `export.button`, `import
 - All 3 new app tests pass.
 - `npm run typecheck` reports zero errors.
 - All pre-existing tests continue to pass (no regressions).
+---
+
+## 7. Make Chart-Panel Expandable and Add Direct Polygon Manipulation
+
+### 7.1 Problem Statement
+
+The radar chart in `src/chart.ts` is the core visual artifact of the assessment, yet it is confined to a fixed-size card (`max-width: 360px`) inside the assessment and summary views. On mobile devices the chart occupies a small fraction of the viewport, and users have no mechanism to inspect it at larger scale. Furthermore, the value-level background polygons (`class="chart-value-level-polygons"`) currently have `pointer-events: none`, preventing any direct interaction. Users must rely solely on range sliders to set scores, which is slower and less intuitive than direct manipulation of the visual representation itself.
+
+This opportunity addresses three related UX gaps:
+1. **No expandable chart view** -- users cannot inspect the radar chart at full screen.
+2. **No tap-to-set interaction** -- the nested level polygons (levels 1 through 5) are invisible to pointer events.
+3. **No direct manipulation of scores** -- the data dots (`class="chart-dot"`) are small (r=5) and non-draggable, preventing touch-based stretching along their axis spokes.
+
+### 7.2 Modules and Feature Areas Requiring Modification
+
+| Module | File | Changes |
+|--------|------|---------|
+| Chart renderer | `src/chart.ts` | Add `data-chart-level` attribute to each level polygon in `buildValueLevelPolygons()`. Increase data-dot radius from 5 to 8 and add `data-domain` attribute in `drawChart()`. Remove `pointer-events: none` from the value-level polygon group. |
+| App controller | `src/app.ts` | Add `showFullscreenChart` boolean flag. Add expand/close event handlers. Add polygon tap handler and dot-drag handler. Add `renderFullscreenChart()` and `updateFullscreenChart()` methods. Add expand buttons to both assessment and summary chart panels. |
+| Styles | `public/styles.css` | Add `.chart-panel.fullscreen` fixed-position overlay styles, `.chart-expand-btn` positioning, `.chart-dot` cursor/touch styles, and `.chart-value-level-polygons polygon` hover/transition styles. |
+| i18n engine | `src/i18n.ts` | Add 1 new key (`chart.fullscreenTitle`) to both `en` and `mi` dictionaries. |
+| Unit tests | `tests/unit/app.test.ts` | Add 2 tests covering expand/close flow. |
+| E2E tests | `tests/e2e/reflection.spec.ts` | Add 1 test covering expand-to-fullscreen and close. |
+
+### 7.3 Reuse-First Mandate
+
+- The existing `drawChart()` function from `src/chart.ts` must be reused to render the chart in the fullscreen view. No new chart rendering code is introduced.
+- The existing `data-action` click-delegation pattern in `bindEvents()` must be extended for expand/close actions. No separate `addEventListener` calls are added to individual elements.
+- The existing `t()` function must be used for the single new UI string (`chart.fullscreenTitle`). No hardcoded text is permitted.
+- The existing `escapeHtml()` helper must wrap all interpolated strings in the new `renderFullscreenChart()` template literal.
+- The existing `saveState()` function must be called after any mutation of `domain.score` during polygon or dot interaction. No direct `localStorage` access is introduced.
+- The existing `.btn`, `.btn.secondary`, and `.chart-*` CSS classes must be reused for the fullscreen close button and expand controls. No new visual primitives are introduced.
+
+### 7.4 Justification for Any New Code
+
+The `showFullscreenChart` boolean flag is **unavoidable** because the existing `render()` method uses a chain of `if / else if` blocks for mutually exclusive views (`showLanguageSelector`, `showExportScreen`, `currentStep === 0`, `showSummary`, assessment). A fullscreen chart overlay is a distinct view that must be checked before `showSummary` to avoid rendering the summary behind the overlay. A separate flag is the minimal and consistent approach given the existing state architecture.
+
+The `data-chart-level` attribute on polygons is **unavoidable** because the SVG polygons are generated as a single joined string in `buildValueLevelPolygons()` with no class differentiation between levels. Without a data attribute, the event handler cannot determine which level (1--5) was tapped.
+
+The `startDotDrag()` method is **unavoidable** because touch-based stretching requires continuous `mousemove` / `touchmove` listeners on `document` (to track movement outside the SVG element), a distance calculation clamped to the chart radius, and live score updates. This logic cannot be expressed as a simple click handler and must be encapsulated in a dedicated method.
+
+The single new i18n key (`chart.fullscreenTitle`) is **unavoidable** because the fullscreen chart heading is user-facing text that must be localized. The i18n completeness test enforces identical key sets across English and Māori dictionaries.
+
+### 7.5 Implementation Details
+
+#### 7.5.1 Expandable Fullscreen Chart
+
+**Trigger:** The user taps or clicks the expand button (`.chart-expand-btn`, Unicode character U+26F6) rendered in the top-right corner of both the live chart panel (during assessment) and the summary chart panel.
+
+**Visual feedback:**
+- The chart panel transitions from inline card layout to a fixed-position overlay (`.chart-panel.fullscreen`) covering the entire viewport (`position: fixed; inset: 0; z-index: 1000`).
+- The chart container scales to `max-width: 90vw; max-height: 80vh` centered within the overlay.
+- A close button (`.chart-close`, labeled with `t('nav.back')`) appears at the top-right of the overlay.
+
+**Dismissal:** Tapping or clicking the close button sets `showFullscreenChart = false` and re-renders the previous view (summary or assessment).
+
+**State management:**
+- `private showFullscreenChart = false;` is added to the `App` class.
+- The `render()` method checks `showFullscreenChart` before `showSummary`:
+
+```typescript
+if (this.showFullscreenChart) {
+  app.innerHTML = this.renderFullscreenChart();
+  this.updateFullscreenChart();
+}
+```
+
+- `updateFullscreenChart()` calls `drawChart('fullscreen-chart', this.state.domains)` inside a `setTimeout(..., 0)` to ensure the DOM element exists before drawing.
+
+#### 7.5.2 Tap-to-Set Score via Polygon Interaction
+
+**Trigger:** The user taps or clicks any nested polygon inside `.chart-value-level-polygons`. Each polygon carries a `data-chart-level` attribute (value `1` through `5`) generated by `buildValueLevelPolygons()`.
+
+**Visual feedback:**
+- The polygons gain `cursor: pointer` and a CSS transition on `fill` and `stroke`.
+- On hover (desktop), the tapped polygon receives a subtle fill highlight (`rgba(44, 95, 74, 0.08)`) and an accent-coloured stroke.
+- No persistent highlight remains after the tap; the score update is immediate and the chart re-renders.
+
+**Rules:**
+- Tapping a polygon sets the score of the **current domain** (the domain at `this.state.domains[this.state.currentStep - 1]`) to the polygon's level.
+- The interaction is only active during assessment steps (`currentStep > 0 && !showSummary`). Tapping polygons in the summary view has no effect.
+- The new score is persisted immediately via `saveState(this.state.domains)` and the view is re-rendered.
+
+**Edge cases:**
+- **Tapping between polygons:** The SVG polygons are nested and non-overlapping; there is no gap between levels, so every tap within the chart area hits exactly one polygon.
+- **Rapid tapping:** Each tap calls `saveState()` and `render()`. The existing debouncing pattern is not required because `render()` is synchronous and `saveState()` is a simple `localStorage.setItem` call.
+- **Invalid level attribute:** If `data-chart-level` is missing or outside 1--5, the handler ignores the tap (`parseInt(..., 10)` returns a value outside the valid range, the guard `level >= 1 && level <= 5` fails, and the function returns without mutation).
+
+#### 7.5.3 Touch-Based Dot Stretching (Direct Manipulation)
+
+**Trigger:** The user presses (mousedown / touchstart) on a data dot (`class="chart-dot"`). Each dot carries a `data-domain` attribute matching its domain ID.
+
+**Visual feedback:**
+- Dots gain `cursor: grab` and `touch-action: none` to prevent browser scrolling during drag.
+- While dragging, the cursor changes to `grabbing`.
+- The score updates in real time as the dot moves along its axis spoke.
+
+**Interaction model:**
+- On press, `startDotDrag(e, domainId)` is called. It computes the domain's axis angle and attaches `mousemove` / `touchmove` and `mouseup` / `touchend` listeners to `document`.
+- On move, the pointer position is projected onto the SVG coordinate space using the SVG element's `getBoundingClientRect()`:
+
+```typescript
+const svgX = ((clientX - rect.left) / (rect.width ?? size)) * size;
+const svgY = ((clientY - rect.top) / (rect.height ?? size)) * size;
+```
+
+- The distance from the SVG center is computed and clamped to `[0, maxRadius]` (110 units).
+- The clamped distance is mapped to a score: `Math.max(1, Math.min(5, Math.round((distance / maxRadius) * 5)))`.
+- If the computed score differs from the current score, `domain.score` is updated, `saveState()` is called, `updateChart()` re-renders the chart, and `updateScoreDisplay()` updates the numeric score badge.
+
+**Release:** On mouseup or touchend, all document-level listeners are removed. The dot snaps to the nearest integer score (1--5).
+
+**Edge cases:**
+- **Drag beyond chart boundary:** The distance is clamped to `maxRadius`, capping the score at 5.
+- **Drag toward center (score 0):** The clamped distance floor is 0, but the score formula maps 0 distance to `Math.round(0)` which is 0; the `Math.max(1, ...)` guard forces the minimum score to 1.
+- **Concave drag path:** The user may drag in any direction; only the radial distance along the domain's axis matters. Movement perpendicular to the axis does not change the score because the projection is purely radial from the center.
+- **Overlapping segments during drag:** The SVG viewBox is 280x280 with a single dot per domain. Dots for different domains are at different angles and do not overlap during normal interaction.
+- **Touch scroll interference:** `touch-action: none` on `.chart-dot` and `{ passive: false }` on the `touchmove` listener prevent the browser from scrolling the page while the user is dragging a dot.
+- **Maximum size limit:** `maxRadius = 110` is hard-coded in `drawChart()` and `startDotDrag()`. The dot cannot be dragged beyond the outermost level polygon (level 5), enforcing the score ceiling of 5.
+
+#### 7.5.4 Data Structures
+
+No new data structures are introduced. The feature reuses the existing `Domain` interface (`id`, `name`, `maoriName`, `description`, `prompt`, `score`, `reflection`) and the existing `AssessmentState` shape (`domains: Domain[]`, `currentStep: number`, `showSummary: boolean`).
+
+The `data-chart-level` attribute on SVG polygons and the `data-domain` attribute on SVG circles are transient DOM metadata, not persisted to `localStorage`.
+
+#### 7.5.5 Event Handlers
+
+All new interactions use the existing delegated click listener on `document`:
+
+| Selector | Action | Handler |
+|----------|--------|---------|
+| `[data-action="chart-expand"]` | Opens fullscreen chart overlay | Sets `showFullscreenChart = true`, calls `render()` |
+| `[data-action="chart-close"]` | Closes fullscreen chart overlay | Sets `showFullscreenChart = false`, calls `render()` |
+| `.chart-value-level-polygons polygon` | Tap-to-set score | Reads `data-chart-level`, updates current domain score, calls `saveState()` and `render()` |
+| `.chart-dot` | Begin drag | Calls `startDotDrag(e, domainId)` |
+
+The `startDotDrag()` method attaches document-level listeners:
+- `mousemove` / `touchmove` -- updates score in real time
+- `mouseup` / `touchend` -- removes all listeners
+
+#### 7.5.6 State Management
+
+State mutations occur in three places:
+1. **Polygon tap:** `domain.score = level` followed by `saveState(this.state.domains)` and `this.render()`.
+2. **Dot drag:** `domain.score = newScore` followed by `saveState(this.state.domains)`, `this.updateChart()`, and `this.updateScoreDisplay(domainId, newScore)`.
+3. **Fullscreen toggle:** `this.showFullscreenChart = true/false` followed by `this.render()`.
+
+No new state slice, reducer, or observable is introduced. The feature operates within the existing `App` class instance state.
+
+### 7.6 New i18n Keys
+
+| Key | English | Māori |
+|-----|---------|-------|
+| `chart.fullscreenTitle` | Assessment chart | Tūtohi aromātakitanga |
+
+This is additive. Existing chart keys (`chart.liveAriaLabel`, `chart.summaryAriaLabel`) are unchanged.
+
+### 7.7 Planned Test Cases
+
+| ID | Test Location | Description |
+|----|--------------|-------------|
+| 7.7.1 | `tests/unit/app.test.ts` | **Expand button opens fullscreen chart:** Bootstrap, start assessment, navigate to summary, click `[data-action="chart-expand"]`, assert `#fullscreen-chart-title` and `[data-action="chart-close"]` are present. |
+| 7.7.2 | `tests/unit/app.test.ts` | **Close button returns to summary:** From fullscreen chart, click `[data-action="chart-close"]`, assert `#summary-title` is present. |
+| 7.7.3 | `tests/unit/app.test.ts` | **Polygon tap sets score:** Bootstrap, start assessment, simulate click on a `.chart-value-level-polygons polygon` with `data-chart-level="3"`, assert the current domain score is 3 and `saveState` was called. |
+| 7.7.4 | `tests/unit/app.test.ts` | **Polygon tap ignores out-of-range level:** Simulate click on polygon with `data-chart-level="0"` or missing attribute, assert score is unchanged. |
+| 7.7.5 | `tests/unit/app.test.ts` | **Polygon tap inactive on summary view:** Navigate to summary, simulate click on `.chart-value-level-polygons polygon`, assert no state mutation occurs. |
+| 7.7.6 | `tests/e2e/reflection.spec.ts` | **Fullscreen chart expand and close flow:** Navigate to summary, click expand, assert fullscreen title visible; click close, assert summary title visible. |
+
+### 7.8 Risk Mitigation
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Fullscreen chart renders before DOM element exists | Low | Medium | `updateFullscreenChart()` uses `setTimeout(..., 0)` to defer `drawChart()` until after `innerHTML` is committed. |
+| Polygon tap accidentally fires on adjacent level | Low | Low | SVG polygons are nested with no gaps; `pointer-events: auto` is set on the group, and each polygon occupies a distinct radial band. |
+| Dot drag causes page scroll on mobile | Medium | Medium | `touch-action: none` on `.chart-dot` and `{ passive: false }` on the `touchmove` listener block browser scroll during drag. |
+| Score desynchronization between chart and slider | Low | Medium | All mutations go through the same `domain.score` property and call `saveState()` before re-render. `updateScoreDisplay()` is called during drag to keep the numeric badge in sync. |
+| New i18n key breaks key-set completeness test | Low | High | Both `en` and `mi` dictionaries are updated atomically. The `Translation completeness` test validates identical key sets immediately. |
+| Event delegation conflict with existing handlers | Low | Low | New handlers use unique selectors (`chart-expand`, `chart-close`, `.chart-value-level-polygons polygon`, `.chart-dot`) that do not overlap with existing `data-action` values. Each handler returns immediately after execution. |
+
+### 7.9 Success Metrics
+
+- The expand button is visible on both live and summary chart panels.
+- Tapping expand opens a fullscreen overlay containing the chart and a close button.
+- Tapping close returns to the previous view without data loss.
+- Tapping a level polygon updates the current domain score, persists it to `localStorage`, and re-renders the chart.
+- Pressing and dragging a dot updates the score in real time and snaps to an integer on release.
+- All 6 new tests pass (2 unit, 1 E2E, 3 additional unit for polygon/dot interactions).
+- `npm run typecheck` reports zero errors.
+- All pre-existing tests continue to pass (no regressions).

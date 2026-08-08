@@ -638,4 +638,111 @@ describe('App', () => {
     expect(alertSpy).toHaveBeenCalled();
     alertSpy.mockRestore();
   });
+
+  it('should expand chart to fullscreen when expand button is clicked', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('button[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="chart-expand"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('fullscreen-chart-title');
+    expect(app?.innerHTML).toContain('data-action="chart-close"');
+  });
+
+  it('should return to summary when close button is clicked from fullscreen chart', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('button[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    document.querySelector('[data-action="chart-expand"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    document.querySelector('[data-action="chart-close"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const app = document.getElementById('app');
+    expect(app?.innerHTML).toContain('summary-title');
+    expect(app?.innerHTML).toContain('data-action="chart-expand"');
+  });
+
+  it('should set score when polygon is tapped during assessment', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const liveChart = document.getElementById('live-chart');
+    if (liveChart) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.classList.add('chart-value-level-polygons');
+      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      polygon.setAttribute('data-chart-level', '3');
+      g.appendChild(polygon);
+      svg.appendChild(g);
+      liveChart.appendChild(svg);
+    }
+
+    const polygon = document.querySelector('.chart-value-level-polygons polygon[data-chart-level="3"]') as SVGPolygonElement | null;
+    expect(polygon).not.toBeNull();
+    polygon?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(saveState).toHaveBeenCalled();
+  });
+
+  it('should ignore polygon tap with out-of-range level', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const liveChart = document.getElementById('live-chart');
+    if (liveChart) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.classList.add('chart-value-level-polygons');
+      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      polygon.setAttribute('data-chart-level', '0');
+      g.appendChild(polygon);
+      svg.appendChild(g);
+      liveChart.appendChild(svg);
+    }
+
+    const polygon = document.querySelector('.chart-value-level-polygons polygon[data-chart-level="0"]') as SVGPolygonElement | null;
+    expect(polygon).not.toBeNull();
+    const callCountBefore = vi.mocked(saveState).mock.calls.length;
+    polygon?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(vi.mocked(saveState).mock.calls.length).toBe(callCountBefore);
+  });
+
+  it('should not mutate score when polygon is tapped on summary view', () => {
+    bootstrap();
+    document.querySelector('[data-action="start"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    for (let i = 0; i < 4; i++) {
+      document.querySelector('button[data-action="next"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+
+    const summaryChart = document.getElementById('summary-chart');
+    if (summaryChart) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.classList.add('chart-value-level-polygons');
+      const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      polygon.setAttribute('data-chart-level', '3');
+      g.appendChild(polygon);
+      svg.appendChild(g);
+      summaryChart.appendChild(svg);
+    }
+
+    const polygon = document.querySelector('#summary-chart .chart-value-level-polygons polygon[data-chart-level="3"]') as SVGPolygonElement | null;
+    expect(polygon).not.toBeNull();
+    const callCountBefore = vi.mocked(saveState).mock.calls.length;
+    polygon?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(vi.mocked(saveState).mock.calls.length).toBe(callCountBefore);
+  });
 });
+
+
+

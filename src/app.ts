@@ -28,6 +28,7 @@ class App {
   private language: Language;
   private showLanguageSelector: boolean;
   private showExportScreen = false;
+  private showFullscreenChart = false;
 
   constructor() {
     const savedLang = loadLanguage();
@@ -148,6 +149,42 @@ class App {
         return;
       }
 
+      if (target.matches('[data-action="chart-expand"]')) {
+        this.showFullscreenChart = true;
+        this.render();
+        return;
+      }
+
+      if (target.matches('[data-action="chart-close"]')) {
+        this.showFullscreenChart = false;
+        this.render();
+        return;
+      }
+
+      if (target.matches('.chart-value-level-polygons polygon')) {
+        const level = parseInt(target.getAttribute('data-chart-level') || '0', 10);
+        if (level >= 1 && level <= 5 && this.state.currentStep > 0 && !this.state.showSummary) {
+          const domain = this.state.domains[this.state.currentStep - 1];
+          if (domain) {
+            domain.score = level;
+            saveState(this.state.domains);
+            this.render();
+          }
+        }
+        return;
+      }
+
+      if (target.matches('.chart-dot')) {
+        const domainId = target.getAttribute('data-domain');
+        if (domainId && this.state.currentStep > 0 && !this.state.showSummary) {
+          const domain = this.state.domains[this.state.currentStep - 1];
+          if (domain && domain.id === domainId) {
+            this.startDotDrag(e, domainId);
+          }
+        }
+        return;
+      }
+
       if (target.matches('[data-action="import"]')) {
         const input = document.querySelector('[data-import-input]') as HTMLInputElement | null;
         input?.click();
@@ -234,6 +271,57 @@ class App {
     if (el) el.textContent = String(score);
   }
 
+  private startDotDrag(e: MouseEvent | Touch, domainId: string): void {
+    const svg = document.querySelector('.radar-svg') as SVGSVGElement | null;
+    if (!svg) return;
+
+    const rect = svg.getBoundingClientRect();
+
+    const size = 280;
+    const center = size / 2;
+    const maxRadius = 110;
+    const domain = this.state.domains[this.state.currentStep - 1];
+    if (!domain) return;
+
+    const domainIndex = this.state.domains.findIndex((d) => d.id === domainId);
+    if (domainIndex < 0) return;
+
+
+    const moveHandler = (moveEvent: MouseEvent | TouchEvent) => {
+      moveEvent.preventDefault();
+      const moveClientX = 'touches' in moveEvent ? (moveEvent as unknown as TouchEvent).touches[0]!.clientX : moveEvent.clientX;
+      const moveClientY = 'touches' in moveEvent ? (moveEvent as unknown as TouchEvent).touches[0]!.clientY : moveEvent.clientY;
+
+      const svgX = ((moveClientX - rect.left) / (rect.width ?? size)) * size;
+      const svgY = ((moveClientY - rect.top) / (rect.height ?? size)) * size;
+
+      const dx = svgX - center;
+      const dy = svgY - center;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const clampedDistance = Math.max(0, Math.min(distance, maxRadius));
+      const newScore = Math.max(1, Math.min(5, Math.round((clampedDistance / maxRadius) * 5)));
+
+      if (newScore !== domain.score) {
+        domain.score = newScore;
+        saveState(this.state.domains);
+        this.updateChart();
+        this.updateScoreDisplay(domainId, newScore);
+      }
+    };
+
+    const upHandler = () => {
+      document.removeEventListener('mousemove', moveHandler);
+      document.removeEventListener('mouseup', upHandler);
+      document.removeEventListener('touchmove', moveHandler);
+      document.removeEventListener('touchend', upHandler);
+    };
+
+    document.addEventListener('mousemove', moveHandler);
+    document.addEventListener('mouseup', upHandler);
+    document.addEventListener('touchmove', moveHandler, { passive: false });
+    document.addEventListener('touchend', upHandler);
+  }
+
   private updateChart(): void {
     if (document.getElementById('live-chart')) {
       drawChart('live-chart', this.state.domains);
@@ -265,6 +353,9 @@ class App {
       app.innerHTML = this.renderExportScreen();
     } else if (this.state.currentStep === 0) {
       app.innerHTML = this.renderWelcome();
+    } else if (this.showFullscreenChart) {
+      app.innerHTML = this.renderFullscreenChart();
+      this.updateFullscreenChart();
     } else if (this.state.showSummary) {
       app.innerHTML = this.renderSummary();
       this.updateChart();
@@ -404,6 +495,7 @@ class App {
 
           <div class="chart-panel">
             <h3 class="chart-title">${chartTitle}</h3>
+            <button type="button" class="chart-expand-btn" data-action="chart-expand" aria-label="Expand chart">⛶</button>
             <div class="chart-container" id="live-chart" role="img" aria-label="${liveAria}"></div>
             <p class="chart-note">${chartNote}</p>
           </div>
@@ -488,6 +580,7 @@ class App {
 
         <div class="summary-body">
           <div class="chart-panel large">
+            <button type="button" class="chart-expand-btn" data-action="chart-expand" aria-label="Expand chart">⛶</button>
             <div class="chart-container" id="summary-chart" role="img" aria-label="${summaryAria}"></div>
             <p class="shape-note">${shapeNote}</p>
             <p class="avg-note">${avgNote}</p>
@@ -537,6 +630,32 @@ class App {
           </div>
         </div>
       </section>`;
+  }
+
+  private renderFullscreenChart(): string {
+    const title = escapeHtml(t('chart.fullscreenTitle', this.language));
+    const closeBtn = escapeHtml(t('nav.back', this.language));
+
+    const chartContent = this.state.showSummary
+      ? '<div class="chart-container" id="fullscreen-chart" role="img" aria-label="' + escapeHtml(t('chart.summaryAriaLabel', this.language)) + '"></div>'
+      : '<div class="chart-container" id="fullscreen-chart" role="img" aria-label="' + escapeHtml(t('chart.liveAriaLabel', this.language)) + '"></div>';
+
+    return `
+      <section class="fullscreen-chart" aria-labelledby="fullscreen-chart-title">
+        <div class="fullscreen-chart-content">
+          <h1 id="fullscreen-chart-title">${title}</h1>
+          ${chartContent}
+          <button type="button" class="btn secondary chart-close" data-action="chart-close">${closeBtn}</button>
+        </div>
+      </section>`;
+  }
+
+  private updateFullscreenChart(): void {
+    setTimeout(() => {
+      if (this.state.showSummary || this.state.currentStep > 0) {
+        drawChart('fullscreen-chart', this.state.domains);
+      }
+    }, 0);
   }
 }
 
