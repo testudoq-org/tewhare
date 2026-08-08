@@ -169,6 +169,23 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     }
   });
 
+  test('should update score by tapping polygon levels during assessment', async ({ page }) => {
+    await page.click('button[data-action="start"]');
+
+    // Set an initial score of 3 so we can also verify the badge updates from 3 -> 1
+    const slider = page.locator('input[type="range"]');
+    await slider.fill('3');
+    await expect(page.locator('[data-score-value="tinana"]')).toHaveText('3');
+
+    // Tap each value-level polygon and verify the score badge updates to match the polygon level
+    for (let level = 1; level <= 5; level++) {
+      const polygon = page.locator('#live-chart .chart-value-level-polygons polygon[data-chart-level="' + level + '"]');
+      await expect(polygon).toBeVisible();
+      await polygon.dispatchEvent('click');
+      await expect(page.locator('[data-score-value="tinana"]')).toHaveText(String(level));
+    }
+  });
+
   test('should render background SVG layer in live chart', async ({ page }) => {
     await page.click('button[data-action="start"]');
 
@@ -323,3 +340,5 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
     await expect(body).toHaveCSS('overflow-x', 'hidden');
   });
 });
+
+
