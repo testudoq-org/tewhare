@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe"/>
+      <stop offset="60%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#7dd3fc"/>
+    </linearGradient>
+    <linearGradient id="whenua" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#65a30d"/>
+      <stop offset="100%" stop-color="#3f6212"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="100%" stop-color="#451a03"/>
+    </linearGradient>
+    <linearGradient id="wall" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#fef3c7"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="4" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="1200" height="800" fill="url(#sky)"/>
+
+  <!-- Distant hills -->
+  <path d="M0,480 Q200,420 400,460 T800,440 T1200,480 L1200,800 L0,800 Z" fill="#86efac" opacity="0.6"/>
+  <path d="M0,520 Q300,470 600,510 T1200,500 L1200,800 L0,800 Z" fill="#4ade80" opacity="0.5"/>
+
+  <!-- Whenua / ground (foundation) -->
+  <rect x="0" y="580" width="1200" height="220" fill="url(#whenua)"/>
+  <path d="M0,580 Q150,560 300,575 T600,565 T900,580 T1200,570 L1200,580 L0,580 Z" fill="#4d7c0f" opacity="0.7"/>
+
+  <!-- Main wharenui body -->
+  <g filter="url(#shadow)">
+    <!-- Left wall (perspective) -->
+    <polygon points="280,320 420,280 420,560 280,540" fill="#fef08a" stroke="#92400e" stroke-width="3"/>
+    <!-- Front wall -->
+    <rect x="420" y="280" width="360" height="280" fill="url(#wall)" stroke="#92400e" stroke-width="3"/>
+    <!-- Right wall -->
+    <polygon points="780,280 920,320 920,540 780,560" fill="#fde047" stroke="#92400e" stroke-width="3"/>
+
+    <!-- Roof - left -->
+    <polygon points="260,330 500,160 420,280 280,320" fill="url(#roof)" stroke="#451a03" stroke-width="2"/>
+    <!-- Roof - front peak -->
+    <polygon points="420,280 500,160 780,280" fill="#9a3412" stroke="#451a03" stroke-width="2"/>
+    <!-- Roof - right -->
+    <polygon points="780,280 500,160 940,330 920,320" fill="url(#roof)" stroke="#451a03" stroke-width="2"/>
+
+    <!-- Ridge ornament / tekoteko suggestion -->
+    <polygon points="500,160 485,120 515,120" fill="#7c2d12"/>
+    <circle cx="500" cy="110" r="12" fill="#b45309"/>
+  </g>
+
+  <!-- Front doorway -->
+  <rect x="560" y="400" width="80" height="160" fill="#451a03" rx="4"/>
+  <path d="M560,400 Q600,360 640,400" fill="#451a03"/>
+
+  <!-- Simple poupou (carved posts) suggestion on front -->
+  <rect x="440" y="300" width="18" height="240" fill="#78350f"/>
+  <rect x="742" y="300" width="18" height="240" fill="#78350f"/>
+
+  <!-- Window suggestions -->
+  <rect x="480" y="340" width="50" height="40" fill="#0c4a6e" opacity="0.7" rx="2"/>
+  <rect x="670" y="340" width="50" height="40" fill="#0c4a6e" opacity="0.7" rx="2"/>
+
+  <!-- Labels for the four walls + whenua -->
+  <g font-family="Georgia, serif" font-size="18" fill="#1e3a5f" text-anchor="middle">
+    <!-- Taha Wairua (spiritual) - left -->
+    <text x="300" y="430" transform="rotate(-12 300 430)">Taha Wairua</text>
+    <!-- Taha Hinengaro (mental) - front leftish -->
+    <text x="500" y="620">Taha Hinengaro</text>
+    <!-- Taha Tinana (physical) - front rightish -->
+    <text x="700" y="620">Taha Tinana</text>
+    <!-- Taha Whānau (family) - right -->
+    <text x="900" y="430" transform="rotate(12 900 430)">Taha Whānau</text>
+    <!-- Whenua (foundation) -->
+    <text x="600" y="720" font-size="22" font-weight="bold" fill="#14532d">Whenua</text>
+  </g>
+
+  <!-- Subtle koru-inspired swirls near ground -->
+  <path d="M150,650 Q180,620 210,650 Q180,680 150,650" fill="none" stroke="#166534" stroke-width="3" opacity="0.4"/>
+  <path d="M1050,660 Q1080,630 1110,660 Q1080,690 1050,660" fill="none" stroke="#166534" stroke-width="3" opacity="0.4"/>
+</svg>
