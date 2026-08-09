@@ -118,10 +118,8 @@ test.describe('Te Whare Tapa Whā Reflection', () => {
 
     await page.evaluate(() => {
       (window as Window & { __printCalled?: boolean }).__printCalled = false;
-      const originalPrint = window.print;
       window.print = () => {
         (window as Window & { __printCalled?: boolean }).__printCalled = true;
-        return originalPrint.call(window);
       };
     });
 

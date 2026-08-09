@@ -104,6 +104,10 @@ const translations = {
     // Dialog
     'dialog.resetConfirm':
       'Start a new reflection? Your current scores and notes will be cleared.',
+
+    // Menu
+    'menu.title': 'Menu',
+    'menu.sbom': 'SBOM Viewer',
   },
 
   mi: {
@@ -190,6 +194,10 @@ const translations = {
     // Dialog
     'dialog.resetConfirm':
       'Tīmata whakamātautautā hou? Ka konta o tūtohi me kōrero o ināianei.',
+
+    // Menu
+    'menu.title': 'Whakamahuki',
+    'menu.sbom': 'View SBOM',
   },
 } as const;
 

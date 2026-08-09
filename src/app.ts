@@ -29,6 +29,8 @@ class App {
   private showLanguageSelector: boolean;
   private showExportScreen = false;
   private showFullscreenChart = false;
+  private showMenu = false;
+  private showSbomOverlay = false;
 
   constructor() {
     const savedLang = loadLanguage();
@@ -192,6 +194,31 @@ class App {
             this.render();
           }
         }
+      }
+
+      if (target.matches('[data-action="toggle-menu"]')) {
+        this.showMenu = !this.showMenu;
+        this.render();
+        return;
+      }
+
+      if (target.matches('[data-action="close-menu"]')) {
+        this.showMenu = false;
+        this.render();
+        return;
+      }
+
+      if (target.matches('[data-action="open-sbom"]')) {
+        this.showMenu = false;
+        this.showSbomOverlay = true;
+        this.render();
+        return;
+      }
+
+      if (target.matches('[data-action="close-sbom"]')) {
+        this.showSbomOverlay = false;
+        this.render();
+        return;
       }
     });
 
@@ -495,12 +522,14 @@ class App {
   }
 
   private updateChart(): void {
-    if (document.getElementById('live-chart')) {
-      drawChart('live-chart', this.state.domains);
-    }
-    if (document.getElementById('summary-chart')) {
-      drawChart('summary-chart', this.state.domains);
-    }
+    setTimeout(() => {
+      if (document.getElementById('live-chart')) {
+        drawChart('live-chart', this.state.domains);
+      }
+      if (document.getElementById('summary-chart')) {
+        drawChart('summary-chart', this.state.domains);
+      }
+    }, 0);
   }
 
   /** Return the domain name appropriate for the current language. */
@@ -519,22 +548,41 @@ class App {
     const app = document.getElementById('app');
     if (!app) return;
 
+    let mainContent = '';
     if (this.showLanguageSelector) {
-      app.innerHTML = this.renderLanguageSelector();
+      mainContent = this.renderLanguageSelector();
     } else if (this.showExportScreen) {
-      app.innerHTML = this.renderExportScreen();
+      mainContent = this.renderExportScreen();
     } else if (this.state.currentStep === 0) {
-      app.innerHTML = this.renderWelcome();
+      mainContent = this.renderWelcome();
     } else if (this.showFullscreenChart) {
-      app.innerHTML = this.renderFullscreenChart();
+      mainContent = this.renderFullscreenChart();
       this.updateFullscreenChart();
     } else if (this.state.showSummary) {
-      app.innerHTML = this.renderSummary();
+      mainContent = this.renderSummary();
       this.updateChart();
     } else {
-      app.innerHTML = this.renderAssessment();
+      mainContent = this.renderAssessment();
       this.updateChart();
     }
+
+    app.innerHTML = `
+      <header class="app-header">
+        <h1 class="app-title">Te Whare Tapa Whā</h1>
+        <button type="button" class="hamburger-btn" data-action="toggle-menu" aria-label="Menu" aria-expanded="${this.showMenu}">
+          <span class="hamburger-icon" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+      </header>
+      <main id="app-main">
+        ${mainContent}
+      </main>
+      ${this.showMenu ? this.renderMenuOverlay() : ''}
+      ${this.showSbomOverlay ? this.renderSbomOverlay() : ''}
+    `;
   }
 
   private renderLanguageSelector(): string {
@@ -828,6 +876,37 @@ class App {
         drawChart('fullscreen-chart', this.state.domains);
       }
     }, 0);
+  }
+
+  private renderMenuOverlay(): string {
+    const menuTitle = escapeHtml(t('menu.title', this.language));
+    const sbomLabel = escapeHtml(t('menu.sbom', this.language));
+
+    return `
+      <div class="overlay menu-overlay" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+        <div class="overlay-header">
+          <h2 id="menu-title">${menuTitle}</h2>
+          <button type="button" class="overlay-close" data-action="close-menu" aria-label="Close menu">✕</button>
+        </div>
+        <ul class="menu-list">
+          <li class="menu-item">
+            <button type="button" class="btn secondary" data-action="open-sbom">${sbomLabel}</button>
+          </li>
+        </ul>
+      </div>`;
+  }
+
+  private renderSbomOverlay(): string {
+    const title = escapeHtml(t('menu.sbom', this.language));
+
+    return `
+      <div class="overlay sbom-overlay" role="dialog" aria-modal="true" aria-labelledby="sbom-title">
+        <div class="overlay-header">
+          <h2 id="sbom-title">${title}</h2>
+          <button type="button" class="overlay-close" data-action="close-sbom" aria-label="Close SBOM viewer">✕</button>
+        </div>
+        <iframe src="/sbom-viewer.html" class="sbom-frame" title="${title}"></iframe>
+      </div>`;
   }
 }
 
