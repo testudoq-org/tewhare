@@ -905,7 +905,7 @@ class App {
           <h2 id="sbom-title">${title}</h2>
           <button type="button" class="overlay-close" data-action="close-sbom" aria-label="Close SBOM viewer">✕</button>
         </div>
-        <iframe src="/sbom-viewer.html" class="sbom-frame" title="${title}"></iframe>
+        <iframe src="sbom-viewer.html" class="sbom-frame" title="${title}"></iframe>
       </div>`;
   }
 }
