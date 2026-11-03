@@ -23,7 +23,7 @@
     "lifecycle": "npm run typecheck && npm run lint && npm run test && npx playwright test --project=chromium && npm run test:dry && npm run test:crap"
   },
   "dependencies": {
-    "vite": "^6.0.0"
+    "vite": "^6.4.5"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "^6.0.0",
